@@ -1,0 +1,44 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: [ ]
+
+rule_files:
+  - "alerts.yml"
+
+scrape_configs:
+  - job_name: 'auth-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: [ 'auth-service:8081' ]
+        labels:
+          application: 'auth-service'
+          environment: 'production'
+
+  - job_name: 'car-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: [ 'car-service:8082' ]
+        labels:
+          application: 'car-service'
+          environment: 'production'
+
+  - job_name: 'scheduler-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: [ 'scheduler-service:8083' ]
+        labels:
+          application: 'scheduler-service'
+          environment: 'production'
+
+  - job_name: 'gateway-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: [ 'gateway-service:8080' ]
+        labels:
+          application: 'gateway-service'
+          environment: 'production'

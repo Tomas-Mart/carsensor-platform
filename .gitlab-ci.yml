@@ -1,0 +1,43 @@
+stages:
+  - build
+  - test
+
+variables:
+  MAVEN_OPTS: "-Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository -Djava.awt.headless=true"
+  MAVEN_CLI_OPTS: "--batch-mode --errors --fail-at-end --show-version -DinstallAtEnd=true -DdeployAtEnd=true"
+
+cache:
+  paths:
+    - .m2/repository/
+
+before_script:
+  - apt-get update && apt-get install -y docker.io
+  - java -version
+  - mvn --version
+  - docker --version
+
+build:
+  stage: build
+  script:
+    - mvn $MAVEN_CLI_OPTS compile
+  artifacts:
+    paths:
+      - target/
+      - */target/
+    expire_in: 1 hour
+  tags:
+    - docker
+
+test:
+  stage: test
+  script:
+    - mvn $MAVEN_CLI_OPTS test
+  artifacts:
+    reports:
+      junit:
+        - '**/target/surefire-reports/TEST-*.xml'
+    paths:
+      - '**/target/surefire-reports/'
+    expire_in: 1 week
+  tags:
+    - docker

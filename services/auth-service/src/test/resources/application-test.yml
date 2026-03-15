@@ -1,0 +1,21 @@
+spring:
+  flyway:
+    enabled: false
+
+  # JPA Configuration
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    generate-ddl: true
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+# Logging Configuration
+logging:
+  level:
+    com.carsensor: DEBUG
+    org.testcontainers: INFO
+    org.springframework.test: INFO

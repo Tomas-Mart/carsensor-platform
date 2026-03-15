@@ -23,7 +23,8 @@ build:
   artifacts:
     paths:
       - target/
-      - */target/
+      - ./*/target/
+      - ./**/target/
     expire_in: 1 hour
   tags:
     - docker

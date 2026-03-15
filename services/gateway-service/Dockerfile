@@ -8,6 +8,13 @@ COPY pom.xml .
 COPY common/common-dto/pom.xml common/common-dto/
 COPY common/common-exception/pom.xml common/common-exception/
 COPY common/common-util/pom.xml common/common-util/
+COPY common/common-test/pom.xml common/common-test/
+
+# Копирование POM-файлов всех сервисов (нужно для родительского POM)
+COPY services/auth-service/pom.xml services/auth-service/
+COPY services/car-service/pom.xml services/car-service/
+COPY services/scheduler-service/pom.xml services/scheduler-service/
+COPY services/gateway-service/pom.xml services/gateway-service/
 
 # Загрузка зависимостей (кэширование)
 RUN mvn dependency:go-offline -B
@@ -16,10 +23,10 @@ RUN mvn dependency:go-offline -B
 COPY common/common-dto/src ./common/common-dto/src
 COPY common/common-exception/src ./common/common-exception/src
 COPY common/common-util/src ./common/common-util/src
+COPY common/common-test/src ./common/common-test/src
 
 # Сборка общих модулей
-RUN mvn clean install -pl common/common-dto,common/common-exception,common/common-util -am -DskipTests
-
+RUN mvn clean install -pl common/common-dto,common/common-exception,common/common-util,common/common-test -am -DskipTests
 # Копирование POM и исходного кода gateway-service
 COPY services/gateway-service/pom.xml services/gateway-service/
 COPY services/gateway-service/src ./services/gateway-service/src
@@ -32,18 +39,23 @@ FROM eclipse-temurin:21-jre-alpine
 
 WORKDIR /app
 
+# Установка curl ДО создания пользователя (ОДИН РАЗ)
+RUN apk --no-cache add curl
+
 # Создание непривилегированного пользователя
 RUN addgroup -S spring && adduser -S spring -G spring
-USER spring:spring
-
-# Установка curl для healthcheck
-RUN apk --no-cache add curl
 
 # Копирование собранного JAR файла из этапа сборки
 COPY --from=builder /build/services/gateway-service/target/*.jar app.jar
 
+# Даем права на файл пользователю spring
+RUN chown -R spring:spring /app
+
 # Порт, на котором работает приложение
 EXPOSE 8080
+
+# Переключаемся на непривилегированного пользователя (ПОСЛЕ всех операций)
+USER spring:spring
 
 # Метки для информации
 LABEL maintainer="CarSensor Team"

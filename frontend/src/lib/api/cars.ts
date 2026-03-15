@@ -39,17 +39,19 @@ export interface CarFilters {
     sort?: string[];
 }
 
+export interface PaginationInfo {
+    total_elements: number;
+    total_pages: number;
+    current_page: number;
+    page_size: number;
+    first: boolean;
+    last: boolean;
+    empty: boolean;
+}
+
 export interface PageResponse {
     content: Car[];
-    pagination: {
-        total_elements: number;
-        total_pages: number;
-        current_page: number;
-        page_size: number;
-        first: boolean;
-        last: boolean;
-        empty: boolean;
-    };
+    pagination: PaginationInfo;
 }
 
 export interface FilterOptions {

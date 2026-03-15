@@ -20,6 +20,9 @@ FROM node:20-alpine AS runner
 
 WORKDIR /app
 
+# Установка curl ДО создания пользователя
+RUN apk --no-cache add curl
+
 # Создание непривилегированного пользователя
 RUN addgroup -g 1001 -S nodejs
 RUN adduser -S nextjs -u 1001

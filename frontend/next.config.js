@@ -1,10 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
     reactStrictMode: true,
-    swcMinify: true,
     output: 'standalone',
     images: {
-        domains: ['www.carsensor.net', 'cdn.carsensor.net'],
         remotePatterns: [
             {
                 protocol: 'https',

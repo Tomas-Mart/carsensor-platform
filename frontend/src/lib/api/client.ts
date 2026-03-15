@@ -11,7 +11,7 @@ export const apiClient = axios.create({
 
 // Интерсептор для добавления токена
 apiClient.interceptors.request.use((config) => {
-    const token = localStorage.getItem('access_token');
+    const token = localStorage.getItem('accessToken');  // Исправлено
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;
     }
@@ -29,7 +29,7 @@ apiClient.interceptors.response.use(
             originalRequest._retry = true;
 
             try {
-                const refreshToken = localStorage.getItem('refresh_token');
+                const refreshToken = localStorage.getItem('refreshToken');  // Исправлено
                 if (!refreshToken) {
                     throw new Error('No refresh token');
                 }
@@ -40,15 +40,15 @@ apiClient.interceptors.response.use(
                     },
                 });
 
-                const {access_token} = response.data;
-                localStorage.setItem('access_token', access_token);
+                const {accessToken} = response.data;  // Исправлено
+                localStorage.setItem('accessToken', accessToken);
 
-                originalRequest.headers.Authorization = `Bearer ${access_token}`;
+                originalRequest.headers.Authorization = `Bearer ${accessToken}`;
                 return apiClient(originalRequest);
             } catch (refreshError) {
                 // Если не удалось обновить токен, выходим
-                localStorage.removeItem('access_token');
-                localStorage.removeItem('refresh_token');
+                localStorage.removeItem('accessToken');
+                localStorage.removeItem('refreshToken');
                 localStorage.removeItem('user');
                 window.location.href = '/login';
                 return Promise.reject(refreshError);

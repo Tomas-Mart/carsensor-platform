@@ -10,6 +10,12 @@ COPY common/common-exception/pom.xml common/common-exception/
 COPY common/common-util/pom.xml common/common-util/
 COPY common/common-test/pom.xml common/common-test/
 
+# Копирование POM-файлов всех сервисов (нужно для родительского POM)
+COPY services/auth-service/pom.xml services/auth-service/
+COPY services/car-service/pom.xml services/car-service/
+COPY services/scheduler-service/pom.xml services/scheduler-service/
+COPY services/gateway-service/pom.xml services/gateway-service/
+
 # Загрузка зависимостей (кэширование)
 RUN mvn dependency:go-offline -B
 
@@ -34,18 +40,23 @@ FROM eclipse-temurin:21-jre-alpine
 
 WORKDIR /app
 
+# Установка curl ДО создания пользователя (ОДИН РАЗ)
+RUN apk --no-cache add curl
+
 # Создание непривилегированного пользователя
 RUN addgroup -S spring && adduser -S spring -G spring
-USER spring:spring
-
-# Установка curl для healthcheck
-RUN apk --no-cache add curl
 
 # Копирование собранного JAR файла из этапа сборки
 COPY --from=builder /build/services/scheduler-service/target/*.jar app.jar
 
+# Даем права на файл пользователю spring
+RUN chown -R spring:spring /app
+
 # Порт, на котором работает приложение
 EXPOSE 8083
+
+# Переключаемся на непривилегированного пользователя (ПОСЛЕ установки curl)
+USER spring:spring
 
 # Метки для информации
 LABEL maintainer="CarSensor Team"

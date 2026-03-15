@@ -1,3 +1,5 @@
+'use client';
+
 import {useCallback, useEffect, useState} from 'react';
 import {Car, carApi, CarFilters, PageResponse} from '@/lib/api/cars';
 import {useAuth} from './useAuth';

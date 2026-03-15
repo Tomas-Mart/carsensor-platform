@@ -9,6 +9,7 @@ variables:
 cache:
   paths:
     - .m2/repository/
+  key: "$CI_COMMIT_REF_SLUG"
 
 before_script:
   - apt-get update && apt-get install -y docker.io

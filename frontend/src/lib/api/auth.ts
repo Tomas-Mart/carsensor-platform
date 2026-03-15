@@ -6,10 +6,9 @@ export interface LoginCredentials {
 }
 
 export interface AuthResponse {
-    access_token: string;
-    refresh_token: string;
-    token_type: string;
-    expires_in: number;
+    accessToken: string;      // Исправлено: camelCase
+    refreshToken: string;     // Исправлено: camelCase
+    expiresIn: number;
     username: string;
     roles: string[];
 }
@@ -39,7 +38,7 @@ class AuthApi {
     }
 
     async logout(): Promise<void> {
-        const token = localStorage.getItem('access_token');
+        const token = localStorage.getItem('accessToken');  // Исправлено
         if (token) {
             await apiClient.post('/api/v1/auth/logout', null, {
                 headers: {

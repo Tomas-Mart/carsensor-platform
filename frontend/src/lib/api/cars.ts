@@ -17,6 +17,7 @@ export interface Car {
     driveType?: string;
     photoUrls?: string[];
     mainPhotoUrl?: string;
+    sourceUrl?: string;
     parsedAt?: string;
     createdAt?: string;
     updatedAt?: string;

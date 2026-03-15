@@ -2,13 +2,15 @@
 
 import {createContext, ReactNode, useEffect, useState} from 'react';
 import {authApi, AuthResponse, User} from '@/lib/api/auth';
+import {storage} from '@/lib/storage';
 
 interface AuthContextType {
     user: User | null;
     loading: boolean;
     isAuthenticated: boolean;
+    isLoading: boolean;
     login: (username: string, password: string) => Promise<void>;
-    logout: () => void;
+    logout: () => Promise<void>;  // <-- Promise
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -18,42 +20,32 @@ export function AuthProvider({children}: { children: ReactNode }) {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // Проверяем сохранен ли пользователь при загрузке
-        const token = localStorage.getItem('accessToken');
-        const savedUser = localStorage.getItem('user');
+        const savedUser = storage.getUser();
+        const token = storage.getToken();
 
         if (token && savedUser) {
-            setUser(JSON.parse(savedUser));
+            setUser(savedUser);
         }
         setLoading(false);
     }, []);
 
     const login = async (username: string, password: string) => {
-        try {
-            const response: AuthResponse = await authApi.login({username, password});
-
-            const userData: User = {
-                username: response.username,
-                roles: response.roles,
-            };
-
-            localStorage.setItem('accessToken', response.accessToken);
-            localStorage.setItem('refreshToken', response.refreshToken);
-            localStorage.setItem('user', JSON.stringify(userData));
-
-            setUser(userData);
-        } catch (error) {
-            console.error('Login failed:', error);
-            throw error;
-        }
+        const response: AuthResponse = await authApi.login({username, password});
+        const userData: User = {
+            username: response.username,
+            roles: response.roles,
+        };
+        storage.setAuth(response.accessToken, response.refreshToken, userData);
+        setUser(userData);
     };
 
-    const logout = () => {
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
-        localStorage.removeItem('user');
-        setUser(null);
-        authApi.logout();
+    const logout = async (): Promise<void> => {  // <-- async + Promise
+        try {
+            await authApi.logout();
+        } finally {
+            storage.clearAuth();
+            setUser(null);
+        }
     };
 
     return (
@@ -61,6 +53,7 @@ export function AuthProvider({children}: { children: ReactNode }) {
             user,
             loading,
             isAuthenticated: !!user,
+            isLoading: loading,
             login,
             logout,
         }}>

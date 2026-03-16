@@ -5,20 +5,29 @@ stages:
 variables:
   MAVEN_OPTS: "-Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository -Djava.awt.headless=true"
   MAVEN_CLI_OPTS: "--batch-mode --errors --fail-at-end --show-version -DinstallAtEnd=true -DdeployAtEnd=true"
+  # Добавляем переменные для Docker-in-Docker
+  DOCKER_HOST: tcp://docker:2375
+  DOCKER_TLS_CERTDIR: ""
+  DOCKER_DRIVER: overlay2
 
 cache:
   paths:
     - .m2/repository/
   key: "$CI_COMMIT_REF_SLUG"
 
+# Убираем before_script с установкой docker.io
 before_script:
-  - apt-get update && apt-get install -y docker.io
   - java -version
   - mvn --version
-  - docker --version
+  # Docker будет доступен через сервис, проверяем его доступность
+  - timeout 10s sh -c "until docker info; do sleep 1; done"
 
 build:
   stage: build
+  # Добавляем сервис Docker-in-Docker
+  services:
+    - name: docker:dind
+      alias: docker
   script:
     - mvn $MAVEN_CLI_OPTS compile
   artifacts:
@@ -32,6 +41,10 @@ build:
 
 test:
   stage: test
+  # Добавляем сервис Docker-in-Docker
+  services:
+    - name: docker:dind
+      alias: docker
   script:
     - mvn $MAVEN_CLI_OPTS test
   artifacts:

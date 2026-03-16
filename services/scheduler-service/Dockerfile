@@ -16,9 +16,6 @@ COPY services/car-service/pom.xml services/car-service/
 COPY services/scheduler-service/pom.xml services/scheduler-service/
 COPY services/gateway-service/pom.xml services/gateway-service/
 
-# Загрузка зависимостей (кэширование)
-RUN mvn dependency:go-offline -B
-
 # Копирование исходного кода общих модулей
 COPY common/common-dto/src ./common/common-dto/src
 COPY common/common-exception/src ./common/common-exception/src

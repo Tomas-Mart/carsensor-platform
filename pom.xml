@@ -46,6 +46,7 @@
 
         <!-- ... existing properties ... -->
         <docker.skip.build>false</docker.skip.build>
+        <flyway.version>10.20.1</flyway.version>
     </properties>
 
     <modules>

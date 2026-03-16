@@ -1,5 +1,5 @@
 # Этап 1: Сборка приложения
-FROM maven:3.9.9-eclipse-temurin-21-alpine AS builder
+FROM dockerhub.timeweb.cloud/library/maven:3.9.9-eclipse-temurin-21-alpine AS builder
 
 WORKDIR /build
 
@@ -33,7 +33,7 @@ COPY services/car-service/src ./services/car-service/src
 RUN mvn clean package -pl services/car-service -am -DskipTests
 
 # Этап 2: Запуск приложения
-FROM eclipse-temurin:21-jre-alpine
+FROM dockerhub.timeweb.cloud/eclipse-temurin:21-jre-alpine
 
 WORKDIR /app
 

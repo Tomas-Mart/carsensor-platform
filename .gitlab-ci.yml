@@ -90,7 +90,7 @@ integration-test:
 
 package:
   stage: package
-  image: docker:29.3-git
+  image: docker:27.3-git
   services:
     - docker:dind
   before_script:

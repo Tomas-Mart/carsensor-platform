@@ -25,6 +25,8 @@ cache:
 build:
   stage: build
   tags: [ local, shell, wsl ]
+  before_script:
+    - chmod +x ./mvnw
   script:
     - ./mvnw $MAVEN_CLI_OPTS compile
   artifacts:
@@ -36,6 +38,8 @@ build:
 unit-test:
   stage: unit-test
   tags: [ local, shell, wsl ]
+  before_script:
+    - chmod +x ./mvnw
   script:
     - ./mvnw $MAVEN_CLI_OPTS test -Dmaven.test.failure.ignore=true -Dsurefire.failIfNoSpecifiedTests=false
   artifacts:
@@ -50,14 +54,15 @@ unit-test:
 integration-test:
   stage: integration-test
   tags: [ local, shell, wsl ]
+  before_script:
+    - chmod +x ./mvnw
+    - echo "Checking Docker..."
+    - docker --version || echo "Docker not found"
   variables:
     TESTCONTAINERS_HOST_OVERRIDE: localhost
     SPRING_DATASOURCE_URL: jdbc:tc:postgresql:16-alpine:///testdb
     SPRING_DATASOURCE_USERNAME: postgres
     SPRING_DATASOURCE_PASSWORD: postgres
-  before_script:
-    - echo "Checking Docker..."
-    - docker --version || echo "Docker not found"
   script:
     - ./mvnw $MAVEN_CLI_OPTS verify -DskipUnitTests=true -Dmaven.test.failure.ignore=true
   artifacts:

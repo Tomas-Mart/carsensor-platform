@@ -66,6 +66,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Debug - check files
+        run: |
+          pwd
+          ls -la
+          ls -la .mvn/wrapper/ || echo "No .mvn/wrapper"
+          cat .mvn/wrapper/maven-wrapper.properties || echo "No properties file"
+
       - name: Set execute permission for mvnw
         run: chmod +x ./mvnw
 

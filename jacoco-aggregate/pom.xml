@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.carsensor.platform</groupId>
+        <artifactId>carsensor-platform</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>jacoco-aggregate</artifactId>
+    <packaging>pom</packaging>
+    <name>JaCoCo Aggregate Report</name>
+    <description>Aggregated code coverage report for all modules</description>
+
+    <properties>
+        <maven.deploy.skip>true</maven.deploy.skip>
+        <maven.install.skip>true</maven.install.skip>
+    </properties>
+
+    <dependencies>
+        <!-- Common modules -->
+        <dependency>
+            <groupId>com.carsensor.platform</groupId>
+            <artifactId>common-dto</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.carsensor.platform</groupId>
+            <artifactId>common-exception</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.carsensor.platform</groupId>
+            <artifactId>common-util</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.carsensor.platform</groupId>
+            <artifactId>common-test</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Service modules -->
+        <dependency>
+            <groupId>com.carsensor.platform</groupId>
+            <artifactId>auth-service</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.carsensor.platform</groupId>
+            <artifactId>car-service</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.carsensor.platform</groupId>
+            <artifactId>scheduler-service</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.carsensor.platform</groupId>
+            <artifactId>gateway-service</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>report-aggregate</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>report-aggregate</goal>
+                        </goals>
+                        <configuration>
+                            <title>CarSensor Platform Coverage Report</title>
+                            <outputDirectory>${project.reporting.outputDirectory}/jacoco-aggregate</outputDirectory>
+                            <includes>
+                                <include>com/carsensor/platform/**/*.class</include>
+                            </includes>
+                            <excludes>
+                                <exclude>**/test/**/*.class</exclude>
+                                <exclude>**/Test*.class</exclude>
+                                <exclude>**/*Test.class</exclude>
+                                <exclude>**/*Tests.class</exclude>
+                                <exclude>**/*IT.class</exclude>
+                            </excludes>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

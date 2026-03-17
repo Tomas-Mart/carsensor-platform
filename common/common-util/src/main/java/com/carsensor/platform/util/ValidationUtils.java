@@ -11,11 +11,11 @@ import lombok.experimental.UtilityClass;
 public class ValidationUtils {
 
     private static final Pattern EMAIL_PATTERN = Pattern.compile(
-            "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$"
+            "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$"
     );
 
     private static final Pattern PHONE_PATTERN = Pattern.compile(
-            "^\\+?[0-9]{10,15}$"
+            "^(\\+7|8)[\\s-]?\\(?\\d{3}\\)?[\\s-]?\\d{3}[\\s-]?\\d{2}[\\s-]?\\d{2}$"
     );
 
     /**
@@ -35,7 +35,9 @@ public class ValidationUtils {
         if (phone == null || phone.isBlank()) {
             return false;
         }
-        return PHONE_PATTERN.matcher(phone.replaceAll("[\\s-]", "")).matches();
+        // Удаляем все пробелы, дефисы, скобки для проверки
+        String cleaned = phone.replaceAll("[\\s\\-()]", "");
+        return PHONE_PATTERN.matcher(cleaned).matches();
     }
 
     /**

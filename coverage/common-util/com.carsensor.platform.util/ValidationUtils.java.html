@@ -11,11 +11,11 @@ import lombok.experimental.UtilityClass;
 public class ValidationUtils {
 
 <span class="nc" id="L13">    private static final Pattern EMAIL_PATTERN = Pattern.compile(</span>
-            &quot;^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$&quot;
+            &quot;^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$&quot;
     );
 
 <span class="nc" id="L17">    private static final Pattern PHONE_PATTERN = Pattern.compile(</span>
-            &quot;^\\+?[0-9]{10,15}$&quot;
+            &quot;^(\\+7|8)[\\s-]?\\(?\\d{3}\\)?[\\s-]?\\d{3}[\\s-]?\\d{2}[\\s-]?\\d{2}$&quot;
     );
 
     /**
@@ -35,25 +35,27 @@ public class ValidationUtils {
 <span class="nc bnc" id="L35" title="All 4 branches missed.">        if (phone == null || phone.isBlank()) {</span>
 <span class="nc" id="L36">            return false;</span>
         }
-<span class="nc" id="L38">        return PHONE_PATTERN.matcher(phone.replaceAll(&quot;[\\s-]&quot;, &quot;&quot;)).matches();</span>
+        // Удаляем все пробелы, дефисы, скобки для проверки
+<span class="nc" id="L39">        String cleaned = phone.replaceAll(&quot;[\\s\\-()]&quot;, &quot;&quot;);</span>
+<span class="nc" id="L40">        return PHONE_PATTERN.matcher(cleaned).matches();</span>
     }
 
     /**
      * Проверка, что цена положительная
      */
     public boolean isPositivePrice(BigDecimal price) {
-<span class="nc bnc" id="L45" title="All 4 branches missed.">        return price != null &amp;&amp; price.compareTo(BigDecimal.ZERO) &gt; 0;</span>
+<span class="nc bnc" id="L47" title="All 4 branches missed.">        return price != null &amp;&amp; price.compareTo(BigDecimal.ZERO) &gt; 0;</span>
     }
 
     /**
      * Проверка года выпуска
      */
     public boolean isValidYear(Integer year) {
-<span class="nc bnc" id="L52" title="All 2 branches missed.">        if (year == null) {</span>
-<span class="nc" id="L53">            return false;</span>
+<span class="nc bnc" id="L54" title="All 2 branches missed.">        if (year == null) {</span>
+<span class="nc" id="L55">            return false;</span>
         }
-<span class="nc" id="L55">        int currentYear = java.time.Year.now().getValue();</span>
-<span class="nc bnc" id="L56" title="All 4 branches missed.">        return year &gt;= 1900 &amp;&amp; year &lt;= currentYear + 1;</span>
+<span class="nc" id="L57">        int currentYear = java.time.Year.now().getValue();</span>
+<span class="nc bnc" id="L58" title="All 4 branches missed.">        return year &gt;= 1900 &amp;&amp; year &lt;= currentYear + 1;</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

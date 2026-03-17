@@ -92,7 +92,7 @@ jobs:
             ${{ runner.os }}-maven-
 
       - name: Run integration tests
-        run: ./mvnw verify -DskipUnitTests=true -Dtest=*IntegrationTest -DfailIfNoTests=false
+        run: ./mvnw verify -DfailIfNoTests=false
         env:
           SPRING_PROFILES_ACTIVE: test
           TESTCONTAINERS_HOST_OVERRIDE: localhost

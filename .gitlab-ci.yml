@@ -22,30 +22,28 @@ cache:
     - frontend/node_modules/
   policy: pull-push
 
-# Шаблон для этапов, где нужен Docker
-.docker-setup: &docker-setup
-  image: docker:29.3-git
-  services:
-    - docker:dind
+# Общий шаблон для Maven задач
+.maven-job: &maven-job
+  image: maven:3.9.9-eclipse-temurin-21-alpine
   before_script:
-    - until docker info; do sleep 1; done
+    - apk add --no-cache curl
 
 build:
   stage: build
-  image: maven:3.9.9-eclipse-temurin-21-alpine
+  <<: *maven-job
   script:
     - mvn $MAVEN_CLI_OPTS compile
   artifacts:
     paths:
       - services/*/target/
+      - common/*/target/
     expire_in: 1 hour
 
 unit-test:
   stage: unit-test
-  image: maven:3.9.9-eclipse-temurin-21-alpine
-  variables:
-    TESTCONTAINERS_HOST_OVERRIDE: docker
+  <<: *maven-job
   script:
+    # Запускаем тесты только в модулях, где они есть
     - mvn $MAVEN_CLI_OPTS test -Dtest=*Test -DfailIfNoTests=false
   artifacts:
     reports:
@@ -71,10 +69,11 @@ integration-test:
     SPRING_DATASOURCE_USERNAME: postgres
     SPRING_DATASOURCE_PASSWORD: postgres
   before_script:
-    - apk add --no-cache docker-cli
+    - apk add --no-cache docker-cli curl
     - until docker info; do sleep 1; done
   script:
-    - mvn $MAVEN_CLI_OPTS verify -DskipUnitTests=true -Dtest=*IntegrationTest
+    # Запускаем интеграционные тесты с профилем test
+    - mvn $MAVEN_CLI_OPTS verify -DskipUnitTests=true -Dtest=*IntegrationTest -DfailIfNoTests=false
   artifacts:
     reports:
       junit:

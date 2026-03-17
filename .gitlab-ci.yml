@@ -7,6 +7,8 @@ stages:
 variables:
   MAVEN_OPTS: "-Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository -Djava.awt.headless=true"
   MAVEN_CLI_OPTS: "--batch-mode --errors --fail-at-end --show-version"
+  MAVEN_TEST_OPTS: "-DfailIfNoTests=false -Dtest=*Test"
+  MAVEN_IT_OPTS: "-DfailIfNoTests=false -Dtest=*IntegrationTest -DskipUnitTests=true"
   DOCKER_HOST: tcp://docker:2375
   DOCKER_TLS_CERTDIR: ""
   DOCKER_DRIVER: overlay2
@@ -43,8 +45,8 @@ unit-test:
   stage: unit-test
   <<: *maven-job
   script:
-    # Запускаем тесты только в модулях, где они есть
-    - mvn $MAVEN_CLI_OPTS test -Dtest=*Test -DfailIfNoTests=false
+    # Запускаем тесты с параметром failIfNoTests=false
+    - mvn $MAVEN_CLI_OPTS test $MAVEN_TEST_OPTS
   artifacts:
     reports:
       junit:
@@ -72,8 +74,8 @@ integration-test:
     - apk add --no-cache docker-cli curl
     - until docker info; do sleep 1; done
   script:
-    # Запускаем интеграционные тесты с профилем test
-    - mvn $MAVEN_CLI_OPTS verify -DskipUnitTests=true -Dtest=*IntegrationTest -DfailIfNoTests=false
+    # Запускаем интеграционные тесты с параметром failIfNoTests=false
+    - mvn $MAVEN_CLI_OPTS verify $MAVEN_IT_OPTS
   artifacts:
     reports:
       junit:

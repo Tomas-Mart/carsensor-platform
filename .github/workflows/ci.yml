@@ -38,7 +38,7 @@ jobs:
         run: ./mvnw clean compile --batch-mode --errors --fail-at-end --show-version
 
       - name: Run unit tests
-        run: ./mvnw test -DfailIfNoTests=false -Dtest=*Test
+        run: ./mvnw test -DfailIfNoTests=false -Dtest=*Test -Dsurefire.failIfNoSpecifiedTests=false
 
       - name: Generate coverage report
         run: ./mvnw jacoco:report

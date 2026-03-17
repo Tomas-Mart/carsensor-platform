@@ -14,8 +14,7 @@ COPY common/common-exception/src ./common/common-exception/src
 COPY common/common-util/src ./common/common-util/src
 COPY common/common-test/src ./common/common-test/src
 RUN --mount=type=cache,target=/root/.m2 \
-    mvn clean install -pl common/common-dto,common/common-exception, \
-    common/common-util,common/common-test -am -DskipTests
+    mvn clean install -pl common/common-dto,common/common-exception,common/common-util,common/common-test -am -DskipTests
 COPY services/gateway-service/pom.xml services/gateway-service/
 COPY services/gateway-service/src ./services/gateway-service/src
 RUN --mount=type=cache,target=/root/.m2 \
@@ -32,12 +31,12 @@ USER spring:spring
 LABEL maintainer="CarSensor Team" version="1.0.0" description="Gateway Service for CarSensor Platform"
 HEALTHCHECK --interval=30s --timeout=3s --start-period=30s --retries=3 \
   CMD curl -f http://localhost:8080/actuator/health || exit 1
-ENTRYPOINT ["java",
-"-XX:+UseContainerSupport",
-"-XX:MaxRAMPercentage=75.0",
-"-XX:+UseG1GC",
-"-XX:+HeapDumpOnOutOfMemoryError",
-"-XX:HeapDumpPath=/tmp/heapdump.hprof",
-"-Djava.security.egd=file:/dev/./urandom",
-"-Dspring.profiles.active=${SPRING_PROFILES_ACTIVE:-docker}",
-"-jar", "app.jar"]
+ENTRYPOINT ["java", \
+    "-XX:+UseContainerSupport", \
+    "-XX:MaxRAMPercentage=75.0", \
+    "-XX:+UseG1GC", \
+    "-XX:+HeapDumpOnOutOfMemoryError", \
+    "-XX:HeapDumpPath=/tmp/heapdump.hprof", \
+    "-Djava.security.egd=file:/dev/./urandom", \
+    "-Dspring.profiles.active=${SPRING_PROFILES_ACTIVE:-docker}", \
+    "-jar", "app.jar"]

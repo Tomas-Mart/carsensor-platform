@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>CarDto.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">CarSensor Platform Coverage Report</a> &gt; <a href="../index.html" class="el_bundle">common-dto</a> &gt; <a href="index.source.html" class="el_package">com.carsensor.platform.dto</a> &gt; <span class="el_source">CarDto.java</span></div><h1>CarDto.java</h1><pre class="source lang-java linenums">package com.carsensor.platform.dto;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.List;
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+import lombok.Builder;
+import lombok.With;
+
+/**
+ * DTO для автомобиля с использованием Java 21 Records
+ * Immutable, без boilerplate кода
+ */
+@Builder
+@With
+@Schema(description = &quot;Данные автомобиля&quot;)
+<span class="nc" id="L25">public record CarDto(</span>
+        @Schema(description = &quot;ID автомобиля&quot;,
+                example = &quot;1&quot;,
+                accessMode = Schema.AccessMode.READ_ONLY)
+        Long id,
+
+        @NotBlank(message = &quot;Марка обязательна&quot;)
+        @Size(min = 1, max = 100, message = &quot;Марка должна содержать от 1 до 100 символов&quot;)
+        @Schema(description = &quot;Марка автомобиля&quot;,
+                example = &quot;Toyota&quot;,
+                requiredMode = Schema.RequiredMode.REQUIRED,
+                minLength = 1,
+                maxLength = 100)
+        String brand,
+
+        @NotBlank(message = &quot;Модель обязательна&quot;)
+        @Size(min = 1, max = 100, message = &quot;Модель должна содержать от 1 до 100 символов&quot;)
+        @Schema(description = &quot;Модель автомобиля&quot;,
+                example = &quot;Camry&quot;,
+                requiredMode = Schema.RequiredMode.REQUIRED,
+                minLength = 1,
+                maxLength = 100)
+        String model,
+
+        @NotNull(message = &quot;Год выпуска обязателен&quot;)
+        @Min(value = 1900, message = &quot;Год выпуска должен быть не менее 1900&quot;)
+        @Max(value = 2026, message = &quot;Год выпуска должен быть не более 2026&quot;)
+        @Schema(description = &quot;Год выпуска&quot;,
+                example = &quot;2020&quot;,
+                requiredMode = Schema.RequiredMode.REQUIRED,
+                minimum = &quot;1900&quot;,
+                maximum = &quot;2026&quot;)
+        Integer year,
+
+        @NotNull(message = &quot;Пробег обязателен&quot;)
+        @Min(value = 0, message = &quot;Пробег не может быть отрицательным&quot;)
+        @Schema(description = &quot;Пробег в км&quot;,
+                example = &quot;50000&quot;,
+                requiredMode = Schema.RequiredMode.REQUIRED,
+                minimum = &quot;0&quot;)
+        Integer mileage,
+
+        @NotNull(message = &quot;Цена обязательна&quot;)
+        @DecimalMin(value = &quot;0.0&quot;, inclusive = false, message = &quot;Цена должна быть положительной&quot;)
+        @Schema(description = &quot;Цена в рублях&quot;,
+                example = &quot;2500000&quot;,
+                requiredMode = Schema.RequiredMode.REQUIRED,
+                minimum = &quot;0&quot;)
+        BigDecimal price,
+
+        @Size(max = 1000, message = &quot;Описание не должно превышать 1000 символов&quot;)
+        @Schema(description = &quot;Описание автомобиля&quot;,
+                example = &quot;Отличное состояние, полный привод, люк&quot;,
+                maxLength = 1000)
+        String description,
+
+        @JsonProperty(&quot;original_brand&quot;)
+        @Schema(description = &quot;Оригинальное название марки (на японском)&quot;,
+                example = &quot;トヨタ&quot;)
+        String originalBrand,
+
+        @JsonProperty(&quot;original_model&quot;)
+        @Schema(description = &quot;Оригинальное название модели (на японском)&quot;,
+                example = &quot;カムリ&quot;)
+        String originalModel,
+
+        @JsonProperty(&quot;exterior_color&quot;)
+        @Schema(description = &quot;Цвет кузова&quot;,
+                example = &quot;Белый&quot;)
+        String exteriorColor,
+
+        @JsonProperty(&quot;interior_color&quot;)
+        @Schema(description = &quot;Цвет салона&quot;,
+                example = &quot;Черный&quot;)
+        String interiorColor,
+
+        @JsonProperty(&quot;engine_capacity&quot;)
+        @Schema(description = &quot;Объем двигателя&quot;,
+                example = &quot;2.5L&quot;)
+        String engineCapacity,
+
+        @Schema(description = &quot;Тип трансмиссии&quot;,
+                example = &quot;AT&quot;,
+                allowableValues = {&quot;AT&quot;, &quot;MT&quot;, &quot;CVT&quot;})
+        String transmission,
+
+        @JsonProperty(&quot;drive_type&quot;)
+        @Schema(description = &quot;Тип привода&quot;,
+                example = &quot;4WD&quot;,
+                allowableValues = {&quot;2WD&quot;, &quot;4WD&quot;, &quot;AWD&quot;})
+        String driveType,
+
+        @JsonProperty(&quot;photo_urls&quot;)
+        @Schema(description = &quot;Список URL фотографий&quot;,
+                example = &quot;[\&quot;/images/1.jpg\&quot;, \&quot;/images/2.jpg\&quot;]&quot;)
+        List&lt;String&gt; photoUrls,
+
+        @JsonProperty(&quot;main_photo_url&quot;)
+        @Schema(description = &quot;URL главного фото&quot;,
+                example = &quot;/images/1.jpg&quot;)
+        String mainPhotoUrl,
+
+        @JsonProperty(&quot;external_id&quot;)
+        @Schema(description = &quot;Внешний ID с сайта источника&quot;,
+                example = &quot;CS123456&quot;)
+        String externalId,
+
+        @JsonProperty(&quot;source_url&quot;)
+        @Schema(description = &quot;URL источника&quot;,
+                example = &quot;https://carsensor.net/...&quot;)
+        String sourceUrl,
+
+        @JsonProperty(&quot;parsed_at&quot;)
+        @JsonFormat(pattern = &quot;yyyy-MM-dd HH:mm:ss&quot;)
+        @Schema(description = &quot;Дата парсинга&quot;,
+                example = &quot;2026-03-16 14:30:00&quot;,
+                pattern = &quot;yyyy-MM-dd HH:mm:ss&quot;)
+        LocalDateTime parsedAt,
+
+        @JsonProperty(&quot;created_at&quot;)
+        @JsonFormat(pattern = &quot;yyyy-MM-dd HH:mm:ss&quot;)
+        @Schema(description = &quot;Дата создания записи&quot;,
+                example = &quot;2026-03-16 14:30:00&quot;,
+                pattern = &quot;yyyy-MM-dd HH:mm:ss&quot;,
+                accessMode = Schema.AccessMode.READ_ONLY)
+        LocalDateTime createdAt,
+
+        @JsonProperty(&quot;updated_at&quot;)
+        @JsonFormat(pattern = &quot;yyyy-MM-dd HH:mm:ss&quot;)
+        @Schema(description = &quot;Дата обновления записи&quot;,
+                example = &quot;2026-03-16 14:30:00&quot;,
+                pattern = &quot;yyyy-MM-dd HH:mm:ss&quot;,
+                accessMode = Schema.AccessMode.READ_ONLY)
+        LocalDateTime updatedAt
+) {
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

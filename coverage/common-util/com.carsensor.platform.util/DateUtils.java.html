@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>DateUtils.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">CarSensor Platform Coverage Report</a> &gt; <a href="../index.html" class="el_bundle">common-util</a> &gt; <a href="index.source.html" class="el_package">com.carsensor.platform.util</a> &gt; <span class="el_source">DateUtils.java</span></div><h1>DateUtils.java</h1><pre class="source lang-java linenums">package com.carsensor.platform.util;
+
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import lombok.experimental.UtilityClass;
+
+/**
+ * Утилиты для работы с датами
+ */
+@UtilityClass
+public class DateUtils {
+
+<span class="nc" id="L14">    private static final DateTimeFormatter ISO_FORMATTER = DateTimeFormatter.ISO_DATE_TIME;</span>
+<span class="nc" id="L15">    private static final DateTimeFormatter RU_FORMATTER = DateTimeFormatter.ofPattern(&quot;dd.MM.yyyy HH:mm&quot;);</span>
+
+    /**
+     * Парсинг даты из строки ISO формата
+     */
+    public LocalDateTime parseIso(String dateStr) {
+<span class="nc bnc" id="L21" title="All 4 branches missed.">        if (dateStr == null || dateStr.isBlank()) {</span>
+<span class="nc" id="L22">            return null;</span>
+        }
+        try {
+<span class="nc" id="L25">            return LocalDateTime.parse(dateStr, ISO_FORMATTER);</span>
+<span class="nc" id="L26">        } catch (DateTimeParseException e) {</span>
+<span class="nc" id="L27">            return null;</span>
+        }
+    }
+
+    /**
+     * Форматирование даты в русский формат
+     */
+    public String formatRu(LocalDateTime dateTime) {
+<span class="nc bnc" id="L35" title="All 2 branches missed.">        if (dateTime == null) {</span>
+<span class="nc" id="L36">            return &quot;&quot;;</span>
+        }
+<span class="nc" id="L38">        return dateTime.format(RU_FORMATTER);</span>
+    }
+
+    /**
+     * Проверка, что дата не старше указанного количества дней
+     */
+    public boolean isNotOlderThan(LocalDateTime dateTime, int days) {
+<span class="nc bnc" id="L45" title="All 2 branches missed.">        if (dateTime == null) {</span>
+<span class="nc" id="L46">            return false;</span>
+        }
+<span class="nc" id="L48">        return dateTime.isAfter(LocalDateTime.now().minusDays(days));</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

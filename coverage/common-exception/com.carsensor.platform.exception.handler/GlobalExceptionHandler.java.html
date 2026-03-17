@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>GlobalExceptionHandler.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">CarSensor Platform Coverage Report</a> &gt; <a href="../index.html" class="el_bundle">common-exception</a> &gt; <a href="index.source.html" class="el_package">com.carsensor.platform.exception.handler</a> &gt; <span class="el_source">GlobalExceptionHandler.java</span></div><h1>GlobalExceptionHandler.java</h1><pre class="source lang-java linenums">package com.carsensor.platform.exception.handler;
+
+import java.net.URI;
+import java.time.Instant;
+import java.util.HashMap;
+import java.util.Map;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.WebRequest;
+import com.carsensor.platform.exception.PlatformException;
+import lombok.extern.slf4j.Slf4j;
+
+/**
+ * Централизованный обработчик ошибок с поддержкой RFC 7807 (Problem Details)
+ */
+<span class="nc" id="L22">@Slf4j</span>
+@RestControllerAdvice
+<span class="nc" id="L24">public class GlobalExceptionHandler {</span>
+
+    @ExceptionHandler(PlatformException.class)
+    public ProblemDetail handlePlatformException(PlatformException ex, WebRequest request) {
+        // Технические детали логируем на английском
+<span class="nc" id="L29">        log.error(&quot;Platform exception occurred: {}&quot;, ex.getMessage(), ex);</span>
+
+<span class="nc bnc" id="L31" title="All 12 branches missed.">        HttpStatus status = switch (ex) {</span>
+<span class="nc" id="L32">            case PlatformException.CarNotFoundException ignored -&gt; HttpStatus.NOT_FOUND;</span>
+<span class="nc" id="L33">            case PlatformException.UserNotFoundException ignored -&gt; HttpStatus.NOT_FOUND;</span>
+<span class="nc" id="L34">            case PlatformException.InvalidCredentialsException ignored -&gt; HttpStatus.UNAUTHORIZED;</span>
+<span class="nc" id="L35">            case PlatformException.AccessDeniedException ignored -&gt; HttpStatus.FORBIDDEN;</span>
+<span class="nc" id="L36">            case PlatformException.DuplicateResourceException ignored -&gt; HttpStatus.CONFLICT;</span>
+<span class="nc" id="L37">            case PlatformException.ParsingException ignored -&gt; HttpStatus.INTERNAL_SERVER_ERROR;</span>
+<span class="nc" id="L38">            case PlatformException.ValidationException ignored -&gt; HttpStatus.BAD_REQUEST;</span>
+<span class="nc" id="L39">            case PlatformException.MissingTokenException ignored -&gt; HttpStatus.UNAUTHORIZED;</span>
+<span class="nc" id="L40">            case PlatformException.InvalidTokenFormatException ignored -&gt; HttpStatus.UNAUTHORIZED;</span>
+<span class="nc" id="L41">            case PlatformException.InvalidTokenException ignored -&gt; HttpStatus.UNAUTHORIZED;</span>
+<span class="nc" id="L42">            case PlatformException.TokenExpiredException ignored -&gt; HttpStatus.UNAUTHORIZED;</span>
+<span class="nc" id="L43">            default -&gt; HttpStatus.INTERNAL_SERVER_ERROR;</span>
+        };
+
+        // Создаем Problem Detail согласно RFC 7807
+<span class="nc" id="L47">        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(status, ex.getUserMessage());</span>
+<span class="nc" id="L48">        problemDetail.setTitle(status.getReasonPhrase());</span>
+<span class="nc" id="L49">        problemDetail.setType(URI.create(&quot;/errors/&quot; + ex.getErrorCode().toLowerCase()));</span>
+<span class="nc" id="L50">        problemDetail.setProperty(&quot;timestamp&quot;, Instant.now());</span>
+<span class="nc" id="L51">        problemDetail.setProperty(&quot;error_code&quot;, ex.getErrorCode());</span>
+
+<span class="nc" id="L53">        return problemDetail;</span>
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ProblemDetail handleValidationExceptions(MethodArgumentNotValidException ex) {
+<span class="nc" id="L58">        Map&lt;String, String&gt; errors = new HashMap&lt;&gt;();</span>
+<span class="nc" id="L59">        ex.getBindingResult().getAllErrors().forEach(error -&gt; {</span>
+<span class="nc" id="L60">            String fieldName = ((FieldError) error).getField();</span>
+<span class="nc" id="L61">            String errorMessage = error.getDefaultMessage();</span>
+<span class="nc" id="L62">            errors.put(fieldName, errorMessage);</span>
+<span class="nc" id="L63">        });</span>
+
+<span class="nc" id="L65">        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(</span>
+                HttpStatus.BAD_REQUEST,
+                &quot;Ошибка валидации входных данных&quot;
+        );
+<span class="nc" id="L69">        problemDetail.setTitle(&quot;Validation Error&quot;);</span>
+<span class="nc" id="L70">        problemDetail.setType(URI.create(&quot;/errors/validation&quot;));</span>
+<span class="nc" id="L71">        problemDetail.setProperty(&quot;timestamp&quot;, Instant.now());</span>
+<span class="nc" id="L72">        problemDetail.setProperty(&quot;error_code&quot;, &quot;VALIDATION_FAILED&quot;);</span>
+<span class="nc" id="L73">        problemDetail.setProperty(&quot;field_errors&quot;, errors);</span>
+
+<span class="nc" id="L75">        log.error(&quot;Validation error: {}&quot;, errors);</span>
+
+<span class="nc" id="L77">        return problemDetail;</span>
+    }
+
+    @ExceptionHandler(BadCredentialsException.class)
+    public ProblemDetail handleBadCredentialsException(BadCredentialsException ex) {
+<span class="nc" id="L82">        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(</span>
+                HttpStatus.UNAUTHORIZED,
+                &quot;Неверный логин или пароль&quot;
+        );
+<span class="nc" id="L86">        problemDetail.setTitle(&quot;Authentication Failed&quot;);</span>
+<span class="nc" id="L87">        problemDetail.setType(URI.create(&quot;/errors/invalid-credentials&quot;));</span>
+<span class="nc" id="L88">        problemDetail.setProperty(&quot;timestamp&quot;, Instant.now());</span>
+<span class="nc" id="L89">        problemDetail.setProperty(&quot;error_code&quot;, &quot;INVALID_CREDENTIALS&quot;);</span>
+
+<span class="nc bnc" id="L91" title="All 2 branches missed.">        log.error(&quot;Authentication failed: {}&quot;, ex.getMessage() != null ? ex.getMessage() : &quot;Unknown error&quot;);</span>
+
+<span class="nc" id="L93">        return problemDetail;</span>
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ProblemDetail handleAccessDeniedException(AccessDeniedException ex) {
+<span class="nc" id="L98">        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(</span>
+                HttpStatus.FORBIDDEN,
+                &quot;У вас нет прав для выполнения этого действия&quot;
+        );
+<span class="nc" id="L102">        problemDetail.setTitle(&quot;Access Denied&quot;);</span>
+<span class="nc" id="L103">        problemDetail.setType(URI.create(&quot;/errors/access-denied&quot;));</span>
+<span class="nc" id="L104">        problemDetail.setProperty(&quot;timestamp&quot;, Instant.now());</span>
+<span class="nc" id="L105">        problemDetail.setProperty(&quot;error_code&quot;, &quot;ACCESS_DENIED&quot;);</span>
+
+<span class="nc bnc" id="L107" title="All 2 branches missed.">        log.error(&quot;Access denied: {}&quot;, ex.getMessage() != null ? ex.getMessage() : &quot;Access denied&quot;);</span>
+
+<span class="nc" id="L109">        return problemDetail;</span>
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ProblemDetail handleGenericException(Exception ex, WebRequest request) {
+<span class="nc" id="L114">        log.error(&quot;Unhandled exception occurred&quot;, ex);</span>
+
+<span class="nc" id="L116">        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(</span>
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                &quot;Внутренняя ошибка сервера&quot;
+        );
+<span class="nc" id="L120">        problemDetail.setTitle(&quot;Internal Server Error&quot;);</span>
+<span class="nc" id="L121">        problemDetail.setType(URI.create(&quot;/errors/internal-server-error&quot;));</span>
+<span class="nc" id="L122">        problemDetail.setProperty(&quot;timestamp&quot;, Instant.now());</span>
+<span class="nc" id="L123">        problemDetail.setProperty(&quot;error_code&quot;, &quot;INTERNAL_ERROR&quot;);</span>
+
+<span class="nc" id="L125">        return problemDetail;</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

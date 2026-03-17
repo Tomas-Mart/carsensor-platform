@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>ErrorResponse.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">CarSensor Platform Coverage Report</a> &gt; <a href="../index.html" class="el_bundle">common-dto</a> &gt; <a href="index.source.html" class="el_package">com.carsensor.platform.dto</a> &gt; <span class="el_source">ErrorResponse.java</span></div><h1>ErrorResponse.java</h1><pre class="source lang-java linenums">package com.carsensor.platform.dto;
+
+import java.time.Instant;
+import java.util.Map;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.Builder;
+
+/**
+ * DTO для ответа с ошибкой
+ */
+@Builder
+@JsonInclude(JsonInclude.Include.NON_NULL)
+@Schema(description = &quot;Стандартный ответ с ошибкой (Problem Details for HTTP APIs RFC 7807)&quot;)
+public record ErrorResponse(
+        @Schema(description = &quot;Временная метка ошибки в формате ISO 8601&quot;,
+                example = &quot;2026-03-16T14:30:00Z&quot;)
+        String timestamp,
+
+        @Schema(description = &quot;HTTP статус код&quot;,
+                example = &quot;400&quot;,
+                requiredMode = Schema.RequiredMode.REQUIRED)
+        int status,
+
+        @Schema(description = &quot;Краткое описание ошибки&quot;,
+                example = &quot;Bad Request&quot;,
+                requiredMode = Schema.RequiredMode.REQUIRED)
+        String error,
+
+        @Schema(description = &quot;Детальное сообщение об ошибке&quot;,
+                example = &quot;Invalid request parameters&quot;,
+                requiredMode = Schema.RequiredMode.REQUIRED)
+        String message,
+
+        @Schema(description = &quot;Путь запроса, на котором произошла ошибка&quot;,
+                example = &quot;/api/v1/cars&quot;)
+        String path,
+
+        @JsonProperty(&quot;error_code&quot;)
+        @Schema(description = &quot;Код ошибки для клиента&quot;,
+                example = &quot;VALIDATION_FAILED&quot;)
+        String errorCode,
+
+        @JsonProperty(&quot;field_errors&quot;)
+        @Schema(description = &quot;Ошибки по конкретным полям&quot;,
+                example = &quot;{\&quot;brand\&quot;: \&quot;Марка не может быть пустой\&quot;, \&quot;year\&quot;: \&quot;Год должен быть от 1900 до 2026\&quot;}&quot;)
+        Map&lt;String, String&gt; fieldErrors
+) {
+<span class="nc" id="L50">    public ErrorResponse {</span>
+<span class="nc bnc" id="L51" title="All 2 branches missed.">        if (timestamp == null) {</span>
+<span class="nc" id="L52">            timestamp = Instant.now().toString();</span>
+        }
+<span class="nc" id="L54">    }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

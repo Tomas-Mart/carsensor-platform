@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>PlatformException.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">CarSensor Platform Coverage Report</a> &gt; <a href="../index.html" class="el_bundle">common-exception</a> &gt; <a href="index.source.html" class="el_package">com.carsensor.platform.exception</a> &gt; <span class="el_source">PlatformException.java</span></div><h1>PlatformException.java</h1><pre class="source lang-java linenums">package com.carsensor.platform.exception;
+
+import lombok.Getter;
+
+/**
+ * Базовое исключение платформы - sealed class для контроля иерархии
+ */
+@Getter
+public sealed class PlatformException extends RuntimeException
+        permits PlatformException.CarNotFoundException,
+        PlatformException.UserNotFoundException,
+        PlatformException.InvalidCredentialsException,
+        PlatformException.AccessDeniedException,
+        PlatformException.DuplicateResourceException,
+        PlatformException.ParsingException,
+        PlatformException.ValidationException,
+        PlatformException.MissingTokenException,
+        PlatformException.InvalidTokenFormatException,
+        PlatformException.InvalidTokenException,
+        PlatformException.TokenExpiredException {
+
+    private final String errorCode;
+    private final String userMessage;
+    private final Object[] args;
+
+    protected PlatformException(String errorCode, String userMessage, String technicalMessage, Object[] args, Throwable cause) {
+<span class="nc" id="L27">        super(technicalMessage, cause);</span>
+<span class="nc" id="L28">        this.errorCode = errorCode;</span>
+<span class="nc" id="L29">        this.userMessage = userMessage;</span>
+<span class="nc" id="L30">        this.args = args;</span>
+<span class="nc" id="L31">    }</span>
+
+    /**
+     * Автомобиль не найден
+     */
+    public static final class CarNotFoundException extends PlatformException {
+        public CarNotFoundException(Long id) {
+<span class="nc" id="L38">            super(</span>
+                    &quot;CAR_NOT_FOUND&quot;,
+                    &quot;Автомобиль с идентификатором &quot; + id + &quot; не найден&quot;,
+                    &quot;Car not found with id: &quot; + id,
+                    new Object[]{id},
+                    null
+            );
+<span class="nc" id="L45">        }</span>
+
+        public CarNotFoundException(String brand, String model) {
+<span class="nc" id="L48">            super(</span>
+                    &quot;CAR_NOT_FOUND&quot;,
+                    &quot;Автомобиль &quot; + brand + &quot; &quot; + model + &quot; не найден&quot;,
+                    &quot;Car not found: &quot; + brand + &quot; &quot; + model,
+                    new Object[]{brand, model},
+                    null
+            );
+<span class="nc" id="L55">        }</span>
+    }
+
+    /**
+     * Пользователь не найден
+     */
+    public static final class UserNotFoundException extends PlatformException {
+        public UserNotFoundException(String username) {
+<span class="nc" id="L63">            super(</span>
+                    &quot;USER_NOT_FOUND&quot;,
+                    &quot;Пользователь не найден&quot;,
+                    &quot;User not found: &quot; + username,
+                    new Object[]{username},
+                    null
+            );
+<span class="nc" id="L70">        }</span>
+    }
+
+    /**
+     * Неверные учетные данные
+     */
+    public static final class InvalidCredentialsException extends PlatformException {
+        public InvalidCredentialsException() {
+<span class="nc" id="L78">            super(</span>
+                    &quot;INVALID_CREDENTIALS&quot;,
+                    &quot;Неверный логин или пароль&quot;,
+                    &quot;Invalid login credentials&quot;,
+                    null,
+                    null
+            );
+<span class="nc" id="L85">        }</span>
+    }
+
+    /**
+     * Доступ запрещен
+     */
+    public static final class AccessDeniedException extends PlatformException {
+        public AccessDeniedException(String username, String requiredRole) {
+<span class="nc" id="L93">            super(</span>
+                    &quot;ACCESS_DENIED&quot;,
+                    &quot;У вас нет прав для выполнения этого действия&quot;,
+                    &quot;Access denied for user: &quot; + username + &quot;, required role: &quot; + requiredRole,
+                    new Object[]{username, requiredRole},
+                    null
+            );
+<span class="nc" id="L100">        }</span>
+    }
+
+    /**
+     * Дублирование ресурса
+     */
+    public static final class DuplicateResourceException extends PlatformException {
+        public DuplicateResourceException(String resourceType, String identifier) {
+<span class="nc" id="L108">            super(</span>
+                    &quot;DUPLICATE_RESOURCE&quot;,
+                    resourceType + &quot; с такими данными уже существует&quot;,
+                    resourceType + &quot; already exists: &quot; + identifier,
+                    new Object[]{resourceType, identifier},
+                    null
+            );
+<span class="nc" id="L115">        }</span>
+    }
+
+    /**
+     * Ошибка парсинга
+     */
+    public static final class ParsingException extends PlatformException {
+        public ParsingException(String url, Throwable cause) {
+<span class="nc" id="L123">            super(</span>
+                    &quot;PARSING_ERROR&quot;,
+                    &quot;Ошибка при парсинге данных с сайта&quot;,
+                    &quot;Failed to parse data from: &quot; + url,
+                    new Object[]{url},
+                    cause
+            );
+<span class="nc" id="L130">        }</span>
+    }
+
+    /**
+     * Ошибка валидации
+     */
+    public static final class ValidationException extends PlatformException {
+        public ValidationException(String message) {
+<span class="nc" id="L138">            super(</span>
+                    &quot;VALIDATION_ERROR&quot;,
+                    message,
+                    &quot;Validation error: &quot; + message,
+                    null,
+                    null
+            );
+<span class="nc" id="L145">        }</span>
+    }
+
+    /**
+     * Отсутствует токен
+     */
+    public static final class MissingTokenException extends PlatformException {
+        public MissingTokenException(String message) {
+<span class="nc" id="L153">            super(</span>
+                    &quot;MISSING_TOKEN&quot;,
+                    message,
+                    &quot;Missing token: &quot; + message,
+                    null,
+                    null
+            );
+<span class="nc" id="L160">        }</span>
+    }
+
+    /**
+     * Неверный формат токена
+     */
+    public static final class InvalidTokenFormatException extends PlatformException {
+        public InvalidTokenFormatException(String message) {
+<span class="nc" id="L168">            super(</span>
+                    &quot;INVALID_TOKEN_FORMAT&quot;,
+                    message,
+                    &quot;Invalid token format: &quot; + message,
+                    null,
+                    null
+            );
+<span class="nc" id="L175">        }</span>
+    }
+
+    /**
+     * Невалидный токен
+     */
+    public static final class InvalidTokenException extends PlatformException {
+        public InvalidTokenException(String message) {
+<span class="nc" id="L183">            super(</span>
+                    &quot;INVALID_TOKEN&quot;,
+                    message,
+                    &quot;Invalid token: &quot; + message,
+                    null,
+                    null
+            );
+<span class="nc" id="L190">        }</span>
+    }
+
+    /**
+     * Токен истек
+     */
+    public static final class TokenExpiredException extends PlatformException {
+        public TokenExpiredException(String message) {
+<span class="nc" id="L198">            super(</span>
+                    &quot;TOKEN_EXPIRED&quot;,
+                    message,
+                    &quot;Token expired: &quot; + message,
+                    null,
+                    null
+            );
+<span class="nc" id="L205">        }</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

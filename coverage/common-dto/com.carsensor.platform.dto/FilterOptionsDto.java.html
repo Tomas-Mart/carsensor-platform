@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>FilterOptionsDto.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">CarSensor Platform Coverage Report</a> &gt; <a href="../index.html" class="el_bundle">common-dto</a> &gt; <a href="index.source.html" class="el_package">com.carsensor.platform.dto</a> &gt; <span class="el_source">FilterOptionsDto.java</span></div><h1>FilterOptionsDto.java</h1><pre class="source lang-java linenums">package com.carsensor.platform.dto;
+
+import java.math.BigDecimal;
+import java.util.List;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.Builder;
+
+/**
+ * DTO для опций фильтрации
+ */
+@Builder
+@Schema(description = &quot;Доступные опции для фильтрации автомобилей&quot;)
+<span class="nc" id="L14">public record FilterOptionsDto(</span>
+        @Schema(description = &quot;Список доступных марок&quot;,
+                example = &quot;[\&quot;Toyota\&quot;, \&quot;Honda\&quot;, \&quot;Nissan\&quot;]&quot;)
+        List&lt;String&gt; brands,
+
+        @JsonProperty(&quot;year_min&quot;)
+        @Schema(description = &quot;Минимальный год выпуска&quot;,
+                example = &quot;2015&quot;)
+        Integer yearMin,
+
+        @JsonProperty(&quot;year_max&quot;)
+        @Schema(description = &quot;Максимальный год выпуска&quot;,
+                example = &quot;2025&quot;)
+        Integer yearMax,
+
+        @JsonProperty(&quot;price_min&quot;)
+        @Schema(description = &quot;Минимальная цена&quot;,
+                example = &quot;1000000&quot;)
+        BigDecimal priceMin,
+
+        @JsonProperty(&quot;price_max&quot;)
+        @Schema(description = &quot;Максимальная цена&quot;,
+                example = &quot;5000000&quot;)
+        BigDecimal priceMax,
+
+        @Schema(description = &quot;Список доступных типов трансмиссии&quot;,
+                example = &quot;[\&quot;AT\&quot;, \&quot;MT\&quot;, \&quot;CVT\&quot;]&quot;)
+        List&lt;String&gt; transmissions,
+
+        @JsonProperty(&quot;drive_types&quot;)
+        @Schema(description = &quot;Список доступных типов привода&quot;,
+                example = &quot;[\&quot;2WD\&quot;, \&quot;4WD\&quot;, \&quot;AWD\&quot;]&quot;)
+        List&lt;String&gt; driveTypes,
+
+        @Schema(description = &quot;Список доступных цветов&quot;,
+                example = &quot;[\&quot;Белый\&quot;, \&quot;Черный\&quot;, \&quot;Серебристый\&quot;]&quot;)
+        List&lt;String&gt; colors
+) {
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>

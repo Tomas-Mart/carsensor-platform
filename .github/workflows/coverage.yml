@@ -1,0 +1,39 @@
+name: Coverage Report
+
+on:
+  push:
+    branches: [ main ]
+  schedule:
+    - cron: '0 0 * * 0'  # Каждое воскресенье
+
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Generate coverage report
+        run: |
+          ./mvnw clean verify
+          ./mvnw jacoco:report-aggregate -pl jacoco-aggregate
+
+      - name: Upload to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: jacoco-aggregate/target/site/jacoco-aggregate/jacoco.xml
+          flags: aggregate
+          name: codecov-umbrella
+
+      - name: Deploy coverage to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./jacoco-aggregate/target/site/jacoco-aggregate
+          destination_dir: coverage

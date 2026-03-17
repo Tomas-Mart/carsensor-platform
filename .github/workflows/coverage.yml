@@ -19,6 +19,9 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
 
+      - name: Set execute permission for mvnw
+        run: chmod +x ./mvnw
+
       - name: Generate coverage report
         run: |
           ./mvnw clean verify

@@ -22,14 +22,17 @@ cache:
     - frontend/node_modules/
   policy: pull-push
 
+# Шаблон для этапов, где нужен Docker
+.docker-setup: &docker-setup
+  image: docker:29.3-git
+  services:
+    - docker:dind
+  before_script:
+    - until docker info; do sleep 1; done
+
 build:
   stage: build
-  image: dockerhub.timeweb.cloud/library/maven:3.9.9-eclipse-temurin-21-alpine
-  services:
-    - name: docker:dind
-      alias: docker
-  before_script:
-    - timeout 30s sh -c "until docker info; do sleep 1; done"
+  image: maven:3.9.9-eclipse-temurin-21-alpine
   script:
     - mvn $MAVEN_CLI_OPTS compile
   artifacts:
@@ -39,16 +42,10 @@ build:
 
 unit-test:
   stage: unit-test
-  image: dockerhub.timeweb.cloud/library/maven:3.9.9-eclipse-temurin-21-alpine
-  services:
-    - name: docker:dind
-      alias: docker
+  image: maven:3.9.9-eclipse-temurin-21-alpine
   variables:
     TESTCONTAINERS_HOST_OVERRIDE: docker
-  before_script:
-    - timeout 30s sh -c "until docker info; do sleep 1; done"
   script:
-    # Запускаем только unit тесты (исключая интеграционные)
     - mvn $MAVEN_CLI_OPTS test -Dtest=*Test -DfailIfNoTests=false
   artifacts:
     reports:
@@ -60,7 +57,7 @@ unit-test:
 
 integration-test:
   stage: integration-test
-  image: dockerhub.timeweb.cloud/library/maven:3.9.9-eclipse-temurin-21-alpine
+  image: maven:3.9.9-eclipse-temurin-21-alpine
   services:
     - name: docker:dind
       alias: docker
@@ -74,9 +71,9 @@ integration-test:
     SPRING_DATASOURCE_USERNAME: postgres
     SPRING_DATASOURCE_PASSWORD: postgres
   before_script:
-    - timeout 30s sh -c "until docker info; do sleep 1; done"
+    - apk add --no-cache docker-cli
+    - until docker info; do sleep 1; done
   script:
-    # Запускаем интеграционные тесты с профилем test
     - mvn $MAVEN_CLI_OPTS verify -DskipUnitTests=true -Dtest=*IntegrationTest
   artifacts:
     reports:
@@ -92,17 +89,20 @@ integration-test:
 
 package:
   stage: package
-  image: docker:29.3
+  image: docker:29.3-git
   services:
     - docker:dind
   before_script:
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
   script:
+    # Сборка образов
     - docker build -t $CI_REGISTRY_IMAGE/auth-service:latest -f services/auth-service/Dockerfile .
     - docker build -t $CI_REGISTRY_IMAGE/car-service:latest -f services/car-service/Dockerfile .
     - docker build -t $CI_REGISTRY_IMAGE/scheduler-service:latest -f services/scheduler-service/Dockerfile .
     - docker build -t $CI_REGISTRY_IMAGE/gateway-service:latest -f services/gateway-service/Dockerfile .
     - docker build -t $CI_REGISTRY_IMAGE/frontend:latest -f frontend/Dockerfile frontend
+
+    # Публикация образов
     - docker push $CI_REGISTRY_IMAGE/auth-service:latest
     - docker push $CI_REGISTRY_IMAGE/car-service:latest
     - docker push $CI_REGISTRY_IMAGE/scheduler-service:latest

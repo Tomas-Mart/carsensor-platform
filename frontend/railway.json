@@ -1,11 +1,6 @@
 {
   "build": {
-    "builder": "NIXPACKS"
-  },
-  "deploy": {
-    "numReplicas": 1,
-    "startCommand": "npm start",
-    "healthcheckPath": "/",
-    "healthcheckTimeout": 100
+    "builder": "DOCKERFILE",
+    "dockerfilePath": "Dockerfile"
   }
 }

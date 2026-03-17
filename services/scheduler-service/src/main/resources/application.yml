@@ -1,14 +1,54 @@
-server:
-  port: 8083
-
 spring:
   application:
     name: scheduler-service
+  profiles:
+    active: dev
+  datasource:
+    url: jdbc:postgresql://localhost:5435/scheduler_db
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 5
+      minimum-idle: 2
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+  quartz:
+    job-store-type: jdbc
+    jdbc:
+      initialize-schema: never
+    properties:
+      org:
+        quartz:
+          scheduler:
+            instanceName: scheduler-service
+            instanceId: AUTO
+          jobStore:
+            class: org.springframework.scheduling.quartz.LocalDataSourceJobStore
+            driverDelegateClass: org.quartz.impl.jdbcjobstore.PostgreSQLDelegate
+            tablePrefix: QRTZ_
+            isClustered: true
+            clusterCheckinInterval: 20000
+          threadPool:
+            class: org.quartz.simpl.SimpleThreadPool
+            threadCount: 5
+            threadPriority: 5
+
+server:
+  port: 8083
 
 parser:
-  max-pages: 5
+  max-pages: ${PARSER_MAX_PAGES:5}
   user-agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
   timeout: 30000
+  schedule: "0 0 * * * *"
 
 car-service:
   url: ${CAR_SERVICE_URL:http://localhost:8082}
@@ -21,15 +61,11 @@ resilience4j:
         failure-rate-threshold: 50
         wait-duration-in-open-state: 60s
         permitted-number-of-calls-in-half-open-state: 3
-        automatic-transition-from-open-to-half-open-enabled: true
   retry:
     instances:
       carParser:
         max-attempts: 3
         wait-duration: 2s
-        retry-exceptions:
-          - org.springframework.web.client.ResourceAccessException
-          - java.io.IOException
   timelimiter:
     instances:
       carParser:
@@ -40,23 +76,54 @@ management:
     web:
       exposure:
         include: health,info,metrics,prometheus
-  metrics:
-    export:
-      prometheus:
+  prometheus:
+    metrics:
+      export:
         enabled: true
 
 logging:
   level:
     com.carsensor.scheduler: DEBUG
-    org.springframework.web.client: INFO
-  pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    org.springframework.beans.factory: DEBUG
+    org.springframework.context: DEBUG
 
 ---
 spring:
   config:
     activate:
       on-profile: docker
-
+  datasource:
+    url: jdbc:postgresql://postgres-scheduler:5432/scheduler_db
 car-service:
-  url: ${CAR_SERVICE_URL:http://car-service:8082}
+  url: ${CAR_SERVICE_URL:https://car-service:8082}
+
+---
+spring:
+  config:
+    activate:
+      on-profile: test
+  datasource:
+    url: jdbc:tc:postgresql:16-alpine:///testdb
+    driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+  flyway:
+    enabled: false
+  quartz:
+    job-store-type: jdbc
+    jdbc:
+      initialize-schema: always
+
+app:
+  jwt:
+    secret: mySecretKeyForJWTTokenGenerationThatMustBeAtLeast512BitsLongInProductionEnvironment2026
+    access-token-expiration: 900
+    refresh-token-expiration: 604800
+
+logging:
+  level:
+    com.carsensor: DEBUG
+    org.testcontainers: INFO
+    org.springframework.beans.factory: DEBUG
+    org.springframework.context: DEBUG

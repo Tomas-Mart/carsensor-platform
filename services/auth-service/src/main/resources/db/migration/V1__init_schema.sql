@@ -74,21 +74,3 @@ SELECT r.id, p.id
 FROM roles r, permissions p
 WHERE r.name = 'ROLE_ADMIN'
 ON CONFLICT DO NOTHING;
-
--- Создание тестового пользователя admin:admin123
-INSERT INTO users (username, email, password, first_name, last_name, is_active)
-VALUES (
-    'admin',
-    'admin@carsensor.local',
-    '$2a$10$rTqUJvKzLQpLQpLQpLQpLQpLQpLQpLQpLQpLQpLQpLQpLQpLQpLQ', -- admin123
-    'Admin',
-    'User',
-    true
-) ON CONFLICT (username) DO NOTHING;
-
--- Назначение роли ADMIN пользователю admin
-INSERT INTO user_roles (user_id, role_id)
-SELECT u.id, r.id
-FROM users u, roles r
-WHERE u.username = 'admin' AND r.name = 'ROLE_ADMIN'
-ON CONFLICT DO NOTHING;

@@ -1,11 +1,10 @@
-server:
-  port: 8081
-
 spring:
   application:
     name: auth-service
+  profiles:
+    active: dev
   datasource:
-    url: jdbc:postgresql://localhost:5432/auth_db
+    url: jdbc:postgresql://localhost:5433/auth_db
     username: ${DB_USERNAME:postgres}
     password: ${DB_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
@@ -13,8 +12,8 @@ spring:
       maximum-pool-size: 10
       minimum-idle: 5
       connection-timeout: 30000
-      idle-timeout: 600000
-      max-lifetime: 1800000
+      idleTimeout: 600000
+      maxLifetime: 1800000
   jpa:
     hibernate:
       ddl-auto: validate
@@ -22,15 +21,24 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
+        jdbc:
+          batch_size: 20
     show-sql: false
   flyway:
     enabled: true
     baseline-on-migrate: true
     locations: classpath:db/migration
+  cache:
+    type: caffeine
+    caffeine:
+      spec: maximumSize=500, expireAfterAccess=600s
+
+server:
+  port: 8081
 
 app:
   jwt:
-    secret: ${JWT_SECRET:mySecretKeyForJWTTokenGenerationThatMustBeAtLeast512BitsLongInProductionEnvironment2026}
+    secret: ${JWT_SECRET:mySuperSecretKeyForJWTTokenGenerationThatMustBeAtLeast512BitsLongInProductionEnvironment2026}
     access-token-expiration: 900
     refresh-token-expiration: 604800
 
@@ -42,13 +50,13 @@ management:
   metrics:
     export:
       prometheus:
+        enabled: true
 
 logging:
   level:
     com.carsensor: DEBUG
     org.springframework.security: INFO
-  pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    org.springframework.cache: INFO
 
 ---
 spring:
@@ -57,3 +65,19 @@ spring:
       on-profile: docker
   datasource:
     url: jdbc:postgresql://postgres-auth:5432/auth_db
+
+---
+spring:
+  config:
+    activate:
+      on-profile: test
+  datasource:
+    url: jdbc:tc:postgresql:16-alpine:///testdb
+    driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+  flyway:
+    enabled: false
+  cache:
+    type: simple

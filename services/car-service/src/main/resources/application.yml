@@ -1,11 +1,10 @@
-server:
-  port: 8082
-
 spring:
   application:
     name: car-service
+  profiles:
+    active: dev
   datasource:
-    url: jdbc:postgresql://localhost:5432/car_db
+    url: jdbc:postgresql://localhost:5434/car_db
     username: ${DB_USERNAME:postgres}
     password: ${DB_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
@@ -13,15 +12,14 @@ spring:
       maximum-pool-size: 20
       minimum-idle: 5
       connection-timeout: 30000
-      idle-timeout: 600000
-      max-lifetime: 1800000
+      idleTimeout: 600000
+      maxLifetime: 1800000
   jpa:
     hibernate:
       ddl-auto: validate
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
-        format_sql: false
         jdbc:
           batch_size: 20
         order_inserts: true
@@ -34,13 +32,14 @@ spring:
   cache:
     type: caffeine
     caffeine:
-      spec: maximumSize=500, expireAfterWrite=60m
+      spec: maximumSize=1000, expireAfterWrite=3600s
+
+server:
+  port: 8082
 
 app:
   jwt:
-    secret: ${JWT_SECRET:mySecretKeyForJWTTokenGenerationThatMustBeAtLeast512BitsLongInProductionEnvironment2026}
-    access-token-expiration: 900
-    refresh-token-expiration: 604800
+    secret: ${JWT_SECRET:mySuperSecretKeyForJWTTokenGenerationThatMustBeAtLeast512BitsLongInProductionEnvironment2026}
 
 management:
   endpoints:
@@ -55,7 +54,6 @@ management:
 logging:
   level:
     com.carsensor: DEBUG
-    org.springframework.security: INFO
     org.springframework.cache: INFO
 
 ---
@@ -65,3 +63,17 @@ spring:
       on-profile: docker
   datasource:
     url: jdbc:postgresql://postgres-car:5432/car_db
+
+---
+spring:
+  config:
+    activate:
+      on-profile: test
+  datasource:
+    url: jdbc:tc:postgresql:16-alpine:///testdb
+    driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+  flyway:
+    enabled: false

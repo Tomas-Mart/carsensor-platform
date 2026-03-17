@@ -1,3 +1,27 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: auth-service-config
+  namespace: carsensor
+data:
+  SPRING_PROFILES_ACTIVE: "k8s"
+  DB_HOST: "postgres-auth"
+  DB_PORT: "5432"
+  DB_NAME: "auth_db"
+  REDIS_HOST: "redis-master"
+  REDIS_PORT: "6379"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: auth-service-secret
+  namespace: carsensor
+type: Opaque
+stringData:
+  DB_USERNAME: "postgres"
+  DB_PASSWORD: "postgres"
+  JWT_SECRET: "mySuperSecretKeyForJWTTokenGenerationThatMustBeAtLeast512BitsLongInProductionEnvironment2026"
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -18,19 +42,17 @@ spec:
           image: carsensor/auth-service:latest
           ports:
             - containerPort: 8081
+          envFrom:
+            - configMapRef:
+                name: auth-service-config
+            - secretRef:
+                name: auth-service-secret
           env:
-            - name: SPRING_PROFILES_ACTIVE
-              value: "k8s"
-            - name: DB_HOST
-              valueFrom:
-                secretKeyRef:
-                  name: postgres-secret
-                  key: host
             - name: DB_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: postgres-secret
-                  key: password
+                  name: auth-service-secret
+                  key: DB_PASSWORD
           resources:
             requests:
               memory: "512Mi"
@@ -62,3 +84,29 @@ spec:
   ports:
     - port: 8081
       targetPort: 8081
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: auth-service-hpa
+  namespace: carsensor
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: auth-service
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80

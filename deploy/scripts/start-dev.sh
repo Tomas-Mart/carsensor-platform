@@ -1,51 +1,48 @@
 #!/bin/bash
 
-echo "🚀 Запуск CarSensor Platform в режиме разработки"
+echo "🚀 Запуск CarSensor Platform"
 
-# Функция для проверки ошибок
-check_error() {
-    if [ $? -ne 0 ]; then
-        echo "❌ Ошибка: $1"
-        exit 1
-    fi
-}
+cd /mnt/d/DiskD/Java/Projects/carsensor-platform
 
-# Запуск баз данных
-echo "📦 Запуск PostgreSQL..."
-docker-compose up -d postgres-auth postgres-car
-check_error "Не удалось запустить PostgreSQL"
+# Запуск БД в Docker
+echo "📦 Запуск баз данных..."
+cd deploy/docker
+docker-compose up -d postgres-auth postgres-car postgres-scheduler redis
 
-# Ожидание готовности баз данных
-echo "⏳ Ожидание готовности баз данных..."
+# Ждем инициализации БД
+echo "⏳ Ожидание инициализации БД..."
 sleep 10
 
-# Запуск backend сервисов
-echo "🔧 Запуск Auth Service..."
-cd auth-service && ../mvnw spring-boot:run -Dspring-boot.run.profiles=dev &
-cd ..
+# Запуск сервисов (каждый в фоне)
+echo "🚀 Запуск Auth Service..."
+cd ../../services/auth-service
+../../mvnw spring-boot:run -Dspring-boot.run.profiles=dev > ../auth-service.log 2>&1 &
+echo $! > ../auth-service.pid
 
-echo "🔧 Запуск Car Service..."
-cd car-service && ../mvnw spring-boot:run -Dspring-boot.run.profiles=dev &
-cd ..
+cd ../car-service
+echo "🚀 Запуск Car Service..."
+../../mvnw spring-boot:run -Dspring-boot.run.profiles=dev > ../car-service.log 2>&1 &
+echo $! > ../car-service.pid
 
-echo "🔧 Запуск Scheduler Service..."
-cd scheduler-service && ../mvnw spring-boot:run -Dspring-boot.run.profiles=dev &
-cd ..
+cd ../scheduler-service
+echo "🚀 Запуск Scheduler Service..."
+../../mvnw spring-boot:run -Dspring-boot.run.profiles=dev > ../scheduler-service.log 2>&1 &
+echo $! > ../scheduler-service.pid
 
-echo "🔧 Запуск Gateway Service..."
-cd gateway-service && ../mvnw spring-boot:run -Dspring-boot.run.profiles=dev &
-cd ..
-
-# Запуск frontend
-echo "🎨 Запуск Frontend..."
-cd frontend && npm run dev &
+cd ../gateway-service
+echo "🚀 Запуск Gateway Service..."
+../../mvnw spring-boot:run -Dspring-boot.run.profiles=dev > ../gateway-service.log 2>&1 &
+echo $! > ../gateway-service.pid
 
 echo "✅ Все сервисы запущены!"
-echo "📌 Frontend: http://localhost:3000"
-echo "📌 API Gateway: http://localhost:8080"
-echo "📌 Auth Service: http://localhost:8081"
-echo "📌 Car Service: http://localhost:8082"
-echo "📌 Scheduler Service: http://localhost:8083"
-
-# Ожидание завершения всех процессов
-wait
+echo "📊 Логи сервисов:"
+echo "  auth-service.log"
+echo "  car-service.log"
+echo "  scheduler-service.log"
+echo "  gateway-service.log"
+echo ""
+echo "🔍 Проверка статуса:"
+echo "  curl http://localhost:8081/actuator/health"
+echo "  curl http://localhost:8082/actuator/health"
+echo "  curl http://localhost:8083/actuator/health"
+echo "  curl http://localhost:8080/actuator/health"

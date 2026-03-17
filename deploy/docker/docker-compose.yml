@@ -1,5 +1,16 @@
+networks:
+  carsensor-network:
+    driver: bridge
+
+volumes:
+  postgres-auth-data:
+  postgres-car-data:
+  postgres-scheduler-data:
+  redis-data:
+  prometheus-data:
+  grafana-data:
+
 services:
-  # PostgreSQL для Auth Service
   postgres-auth:
     image: postgres:16-alpine
     container_name: carsensor-postgres-auth
@@ -12,7 +23,7 @@ services:
     volumes:
       - postgres-auth-data:/var/lib/postgresql/data
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${AUTH_DB_USERNAME:-postgres} -d ${AUTH_DB_NAME:-auth_db}" ]
+      test: [ "CMD-SHELL", "pg_isready -U ${AUTH_DB_USERNAME:-postgres}" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -20,7 +31,6 @@ services:
       - carsensor-network
     restart: unless-stopped
 
-  # PostgreSQL для Car Service
   postgres-car:
     image: postgres:16-alpine
     container_name: carsensor-postgres-car
@@ -33,7 +43,7 @@ services:
     volumes:
       - postgres-car-data:/var/lib/postgresql/data
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${CAR_DB_USERNAME:-postgres} -d ${CAR_DB_NAME:-car_db}" ]
+      test: [ "CMD-SHELL", "pg_isready -U ${CAR_DB_USERNAME:-postgres}" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -41,26 +51,59 @@ services:
       - carsensor-network
     restart: unless-stopped
 
-  # Auth Service
+  postgres-scheduler:
+    image: postgres:16-alpine
+    container_name: carsensor-postgres-scheduler
+    environment:
+      POSTGRES_DB: ${SCHEDULER_DB_NAME:-scheduler_db}
+      POSTGRES_USER: ${SCHEDULER_DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${SCHEDULER_DB_PASSWORD:-postgres}
+    ports:
+      - "${SCHEDULER_DB_PORT:-5435}:5432"
+    volumes:
+      - postgres-scheduler-data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${SCHEDULER_DB_USERNAME:-postgres}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - carsensor-network
+    restart: unless-stopped
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: carsensor-redis
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - carsensor-network
+    restart: unless-stopped
+
   auth-service:
     build:
       context: ../..
       dockerfile: services/auth-service/Dockerfile
     container_name: carsensor-auth
     environment:
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-docker}
-      DB_HOST: postgres-auth
-      DB_PORT: 5432
-      DB_NAME: ${AUTH_DB_NAME:-auth_db}
+      SPRING_PROFILES_ACTIVE: docker
       DB_USERNAME: ${AUTH_DB_USERNAME:-postgres}
       DB_PASSWORD: ${AUTH_DB_PASSWORD:-postgres}
-      JWT_SECRET: ${JWT_SECRET:-mySuperSecretKeyForJWTTokenGenerationThatMustBeAtLeast512BitsLongInProductionEnvironment2026}
-      JWT_ACCESS_TOKEN_EXPIRATION: ${JWT_ACCESS_TOKEN_EXPIRATION:-900}
-      JWT_REFRESH_TOKEN_EXPIRATION: ${JWT_REFRESH_TOKEN_EXPIRATION:-604800}
+      JWT_SECRET: ${JWT_SECRET}
     ports:
       - "8081:8081"
     depends_on:
       postgres-auth:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     networks:
       - carsensor-network
@@ -71,24 +114,22 @@ services:
       timeout: 10s
       retries: 3
 
-  # Car Service
   car-service:
     build:
       context: ../..
       dockerfile: services/car-service/Dockerfile
     container_name: carsensor-car
     environment:
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-docker}
-      DB_HOST: postgres-car
-      DB_PORT: 5432
-      DB_NAME: ${CAR_DB_NAME:-car_db}
+      SPRING_PROFILES_ACTIVE: docker
       DB_USERNAME: ${CAR_DB_USERNAME:-postgres}
       DB_PASSWORD: ${CAR_DB_PASSWORD:-postgres}
-      JWT_SECRET: ${JWT_SECRET:-mySuperSecretKeyForJWTTokenGenerationThatMustBeAtLeast512BitsLongInProductionEnvironment2026}
+      JWT_SECRET: ${JWT_SECRET}
     ports:
       - "8082:8082"
     depends_on:
       postgres-car:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     networks:
       - carsensor-network
@@ -99,22 +140,25 @@ services:
       timeout: 10s
       retries: 3
 
-  # Scheduler Service
   scheduler-service:
     build:
       context: ../..
       dockerfile: services/scheduler-service/Dockerfile
     container_name: carsensor-scheduler
     environment:
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-docker}
+      SPRING_PROFILES_ACTIVE: docker
       CAR_SERVICE_URL: http://car-service:8082
       PARSER_MAX_PAGES: ${PARSER_MAX_PAGES:-5}
-      PARSER_USER_AGENT: ${PARSER_USER_AGENT:-Mozilla/5.0}
-      PARSER_TIMEOUT: ${PARSER_TIMEOUT:-30000}
+      DB_USERNAME: ${SCHEDULER_DB_USERNAME:-postgres}
+      DB_PASSWORD: ${SCHEDULER_DB_PASSWORD:-postgres}
     ports:
       - "8083:8083"
     depends_on:
+      postgres-scheduler:
+        condition: service_healthy
       car-service:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     networks:
       - carsensor-network
@@ -125,18 +169,14 @@ services:
       timeout: 10s
       retries: 3
 
-  # Gateway Service
   gateway-service:
     build:
       context: ../..
       dockerfile: services/gateway-service/Dockerfile
     container_name: carsensor-gateway
     environment:
-      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-docker}
-      AUTH_SERVICE_URL: http://auth-service:8081
-      CAR_SERVICE_URL: http://car-service:8082
-      SCHEDULER_SERVICE_URL: http://scheduler-service:8083
-      JWT_SECRET: ${JWT_SECRET:-mySuperSecretKeyForJWTTokenGenerationThatMustBeAtLeast512BitsLongInProductionEnvironment2026}
+      SPRING_PROFILES_ACTIVE: docker
+      JWT_SECRET: ${JWT_SECRET}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000}
     ports:
       - "8080:8080"
@@ -156,7 +196,6 @@ services:
       timeout: 10s
       retries: 3
 
-  # Frontend
   frontend:
     build:
       context: ../../frontend
@@ -164,7 +203,6 @@ services:
     container_name: carsensor-frontend
     environment:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8080}
-      NODE_ENV: production
     ports:
       - "3000:3000"
     depends_on:
@@ -174,39 +212,36 @@ services:
       - carsensor-network
     restart: unless-stopped
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:3000" ]
+      test: [ "CMD", "node", "-e", "require('http').get('http://localhost:3000', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})" ]
       interval: 30s
       timeout: 10s
       retries: 3
 
-  # Prometheus для мониторинга
   prometheus:
     image: prom/prometheus:latest
     container_name: carsensor-prometheus
     volumes:
-      - ../../monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ../../deploy/monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus-data:/prometheus
     ports:
-      - "9090:9090"
+      - "${PROMETHEUS_PORT:-9090}:9090"
     networks:
       - carsensor-network
     restart: unless-stopped
     profiles:
       - monitoring
 
-  # Grafana для визуализации
   grafana:
     image: grafana/grafana:latest
     container_name: carsensor-grafana
     environment:
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
-      GF_INSTALL_PLUGINS: grafana-piechart-panel
     volumes:
-      - ../../monitoring/grafana-dashboards:/etc/grafana/provisioning/dashboards
-      - ../../monitoring/grafana-datasources:/etc/grafana/provisioning/datasources
+      - ../../deploy/monitoring/grafana/dashboard.yml:/etc/grafana/provisioning/dashboards/dashboard.yml
+      - ../../deploy/monitoring/grafana/datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
       - grafana-data:/var/lib/grafana
     ports:
-      - "3030:3000"
+      - "${GRAFANA_PORT:-3030}:3000"
     depends_on:
       - prometheus
     networks:
@@ -214,13 +249,3 @@ services:
     restart: unless-stopped
     profiles:
       - monitoring
-
-volumes:
-  postgres-auth-data:
-  postgres-car-data:
-  prometheus-data:
-  grafana-data:
-
-networks:
-  carsensor-network:
-    driver: bridge

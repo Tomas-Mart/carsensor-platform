@@ -304,15 +304,16 @@ class AuthenticationServiceTest {
             verify(tokenProvider, never()).generateAccessToken(any());
         }
 
-        // НОВЫЙ ТЕСТ: черный список токенов (через logout)
         @Test
         @DisplayName("Обновление с токеном из черного списка выбрасывает InvalidTokenException")
-        void refreshToken_BlacklistedToken_ThrowsException() throws Exception {
+        void refreshToken_BlacklistedToken_ThrowsException() {
             // Arrange
             String tokenToBlacklist = "token.to.blacklist";
-
-            // Сначала logout, чтобы добавить токен в черный список
             authenticationService.logout("Bearer " + tokenToBlacklist);
+
+            // Act & Assert
+            assertThatThrownBy(() -> authenticationService.refreshToken(tokenToBlacklist))
+                    .isInstanceOf(InvalidTokenException.class);
         }
 
         @Test
@@ -361,12 +362,13 @@ class AuthenticationServiceTest {
         void logout_ValidToken_ClearsContext() {
             // Arrange
             String bearerToken = "Bearer valid.jwt.token";
+            String token = "valid.jwt.token";
 
             // Act
             authenticationService.logout(bearerToken);
 
-            // Assert - не должно быть исключений
-            // В реальности нужно проверить черный список, но он приватный
+            // Assert - токен должен быть невалидным после logout
+            assertThat(authenticationService.validateToken(token)).isFalse();
         }
 
         @Test

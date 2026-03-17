@@ -1,21 +1,20 @@
 spring:
-  flyway:
-    enabled: false
-
-  # JPA Configuration
+  datasource:
+    url: jdbc:tc:postgresql:16-alpine:///testdb
+    driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
   jpa:
     hibernate:
       ddl-auto: create-drop
-    generate-ddl: true
-    show-sql: true
-    properties:
-      hibernate:
-        format_sql: true
-        dialect: org.hibernate.dialect.PostgreSQLDialect
+  flyway:
+    enabled: false
 
-# Logging Configuration
+app:
+  jwt:
+    secret: mySecretKeyForJWTTokenGenerationThatMustBeAtLeast512BitsLongInProductionEnvironment2026
+    access-token-expiration: 900
+    refresh-token-expiration: 604800
+
 logging:
   level:
     com.carsensor: DEBUG
     org.testcontainers: INFO
-    org.springframework.test: INFO

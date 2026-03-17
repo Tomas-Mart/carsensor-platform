@@ -1,52 +1,55 @@
 stages:
   - build
-  - test
+  - unit-test
+  - integration-test
+  - package
 
 variables:
   MAVEN_OPTS: "-Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository -Djava.awt.headless=true"
-  MAVEN_CLI_OPTS: "--batch-mode --errors --fail-at-end --show-version -DinstallAtEnd=true -DdeployAtEnd=true"
-  # Добавляем переменные для Docker-in-Docker
+  MAVEN_CLI_OPTS: "--batch-mode --errors --fail-at-end --show-version"
   DOCKER_HOST: tcp://docker:2375
   DOCKER_TLS_CERTDIR: ""
   DOCKER_DRIVER: overlay2
+  POSTGRES_USER: postgres
+  POSTGRES_PASSWORD: postgres
+  POSTGRES_DB: test
+  REDIS_PASSWORD: ""
 
 cache:
+  key: "$CI_COMMIT_REF_SLUG"
   paths:
     - .m2/repository/
-  key: "$CI_COMMIT_REF_SLUG"
-
-# Убираем before_script с установкой docker.io
-before_script:
-  - java -version
-  - mvn --version
-  # Docker будет доступен через сервис, проверяем его доступность
-  - timeout 10s sh -c "until docker info; do sleep 1; done"
+    - frontend/node_modules/
+  policy: pull-push
 
 build:
   stage: build
-  # Добавляем сервис Docker-in-Docker
+  image: dockerhub.timeweb.cloud/library/maven:3.9.9-eclipse-temurin-21-alpine
   services:
     - name: docker:dind
       alias: docker
+  before_script:
+    - timeout 30s sh -c "until docker info; do sleep 1; done"
   script:
     - mvn $MAVEN_CLI_OPTS compile
   artifacts:
     paths:
-      - target/
-      - ./*/target/
-      - ./**/target/
+      - services/*/target/
     expire_in: 1 hour
-  tags:
-    - docker
 
-test:
-  stage: test
-  # Добавляем сервис Docker-in-Docker
+unit-test:
+  stage: unit-test
+  image: dockerhub.timeweb.cloud/library/maven:3.9.9-eclipse-temurin-21-alpine
   services:
     - name: docker:dind
       alias: docker
+  variables:
+    TESTCONTAINERS_HOST_OVERRIDE: docker
+  before_script:
+    - timeout 30s sh -c "until docker info; do sleep 1; done"
   script:
-    - mvn $MAVEN_CLI_OPTS test
+    # Запускаем только unit тесты (исключая интеграционные)
+    - mvn $MAVEN_CLI_OPTS test -Dtest=*Test -DfailIfNoTests=false
   artifacts:
     reports:
       junit:
@@ -54,5 +57,58 @@ test:
     paths:
       - '**/target/surefire-reports/'
     expire_in: 1 week
-  tags:
-    - docker
+
+integration-test:
+  stage: integration-test
+  image: dockerhub.timeweb.cloud/library/maven:3.9.9-eclipse-temurin-21-alpine
+  services:
+    - name: docker:dind
+      alias: docker
+    - name: postgres:16-alpine
+      alias: postgres
+    - name: redis:7.2-alpine
+      alias: redis
+  variables:
+    TESTCONTAINERS_HOST_OVERRIDE: docker
+    SPRING_DATASOURCE_URL: jdbc:tc:postgresql:16-alpine:///testdb
+    SPRING_DATASOURCE_USERNAME: postgres
+    SPRING_DATASOURCE_PASSWORD: postgres
+  before_script:
+    - timeout 30s sh -c "until docker info; do sleep 1; done"
+  script:
+    # Запускаем интеграционные тесты с профилем test
+    - mvn $MAVEN_CLI_OPTS verify -DskipUnitTests=true -Dtest=*IntegrationTest
+  artifacts:
+    reports:
+      junit:
+        - '**/target/failsafe-reports/TEST-*.xml'
+        - '**/target/surefire-reports/TEST-*IntegrationTest.xml'
+    paths:
+      - '**/target/site/jacoco/'
+      - '**/target/failsafe-reports/'
+    expire_in: 1 week
+  needs:
+    - unit-test
+
+package:
+  stage: package
+  image: docker:29.3
+  services:
+    - docker:dind
+  before_script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  script:
+    - docker build -t $CI_REGISTRY_IMAGE/auth-service:latest -f services/auth-service/Dockerfile .
+    - docker build -t $CI_REGISTRY_IMAGE/car-service:latest -f services/car-service/Dockerfile .
+    - docker build -t $CI_REGISTRY_IMAGE/scheduler-service:latest -f services/scheduler-service/Dockerfile .
+    - docker build -t $CI_REGISTRY_IMAGE/gateway-service:latest -f services/gateway-service/Dockerfile .
+    - docker build -t $CI_REGISTRY_IMAGE/frontend:latest -f frontend/Dockerfile frontend
+    - docker push $CI_REGISTRY_IMAGE/auth-service:latest
+    - docker push $CI_REGISTRY_IMAGE/car-service:latest
+    - docker push $CI_REGISTRY_IMAGE/scheduler-service:latest
+    - docker push $CI_REGISTRY_IMAGE/gateway-service:latest
+    - docker push $CI_REGISTRY_IMAGE/frontend:latest
+  only:
+    - main
+  needs:
+    - integration-test

@@ -1,0 +1,16 @@
+spring:
+  cloud:
+    gateway:
+      enabled: false
+  main:
+    web-application-type: reactive
+
+app:
+  jwt:
+    secret: mySecretKeyForJWTTokenGenerationThatMustBeAtLeast512BitsLongInProductionEnvironment2026
+    access-token-expiration: 900
+    refresh-token-expiration: 604800
+
+logging:
+  level:
+    com.carsensor.gateway: DEBUG

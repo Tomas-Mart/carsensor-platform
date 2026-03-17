@@ -1,9 +1,10 @@
-server:
-  port: 8080
-
 spring:
   application:
     name: gateway-service
+  profiles:
+    active: dev
+  main:
+    web-application-type: reactive  # КРИТИЧЕСКИ ВАЖНО для Gateway
   cloud:
     gateway:
       discovery:
@@ -26,9 +27,12 @@ spring:
             allowCredentials: true
             maxAge: 3600
 
+server:
+  port: 8080
+
 app:
   jwt:
-    secret: ${JWT_SECRET:mySecretKeyForJWTTokenGenerationThatMustBeAtLeast512BitsLongInProductionEnvironment2026}
+    secret: ${JWT_SECRET:mySuperSecretKeyForJWTTokenGenerationThatMustBeAtLeast512BitsLongInProductionEnvironment2026}
 
 services:
   auth:
@@ -55,9 +59,21 @@ spring:
   config:
     activate:
       on-profile: docker
-
+  main:
+    web-application-type: reactive
 services:
   auth:
     url: ${AUTH_SERVICE_URL:http://auth-service:8081}
   car:
     url: ${CAR_SERVICE_URL:http://car-service:8082}
+
+---
+spring:
+  config:
+    activate:
+      on-profile: test
+  main:
+    web-application-type: reactive
+  cloud:
+    gateway:
+      enabled: false

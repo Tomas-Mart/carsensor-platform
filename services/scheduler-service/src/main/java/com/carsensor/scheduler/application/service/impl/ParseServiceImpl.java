@@ -11,6 +11,8 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import com.carsensor.platform.dto.CarDto;
 import com.carsensor.scheduler.application.service.ParseService;
+import com.carsensor.scheduler.config.JwtProperties;
+import com.carsensor.scheduler.config.ParserProperties;
 import com.carsensor.scheduler.domain.parser.CarSensorParser;
 import com.carsensor.scheduler.infrastructure.client.CarServiceClient;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
@@ -26,6 +28,8 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class ParseServiceImpl implements ParseService {
 
+    private final ParserProperties parserProperties;
+    private final JwtProperties jwtProperties;
     private final CarSensorParser carSensorParser;
     private final CarServiceClient carServiceClient;
 

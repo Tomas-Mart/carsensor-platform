@@ -1,14 +1,14 @@
--- Очистка данных (если нужно)
-DELETE FROM user_roles WHERE user_id = 1;
+-- Очистка данных перед вставкой (если нужно)
+DELETE FROM user_roles WHERE user_id IN (SELECT id FROM users WHERE username = 'admin');
 DELETE FROM users WHERE username = 'admin';
 
 -- Вставка тестового пользователя (пароль: admin123)
-INSERT INTO users (id, username, email, password, first_name, last_name, is_active, created_at, updated_at)
+-- Без указания id - пусть генерируется автоматически
+INSERT INTO users (username, email, password, first_name, last_name, is_active, created_at, updated_at)
 VALUES (
-    1,
     'admin',
     'admin@test.com',
-    '$2a$12$KHB9EeB01exKk/CA/Kvm9.fMAa4960q/36g8N0HcYynFPIt5HCBOG',
+    '$2a$12$39aOe7AKc.qVz8zmHvfv9elb0n/h/AOuis6lvfuuMW1Fi6csFsAX.',
     'Admin',
     'User',
     true,
@@ -16,6 +16,9 @@ VALUES (
     NOW()
 );
 
--- Назначение ролей (предполагается, что роль ROLE_ADMIN уже существует)
+-- Назначение ролей - используем SELECT для получения ID пользователя
 INSERT INTO user_roles (user_id, role_id)
-SELECT 1, id FROM roles WHERE name = 'ROLE_ADMIN';
+SELECT u.id, r.id
+FROM users u, roles r
+WHERE u.username = 'admin' AND r.name = 'ROLE_ADMIN'
+ON CONFLICT DO NOTHING;

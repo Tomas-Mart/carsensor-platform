@@ -15,6 +15,10 @@ variables:
   POSTGRES_DB: test
   REDIS_PASSWORD: ""
 
+  # Кэширование для ускорения
+  MAVEN_CACHE: "$CI_PROJECT_DIR/.m2/repository"
+
+# Увеличиваем таймаут
 timeout: 2h
 
 cache:
@@ -22,7 +26,13 @@ cache:
   paths:
     - .m2/repository/
     - frontend/node_modules/
+    - common/*/target/
+    - services/*/target/
   policy: pull-push
+
+# ============================================
+# Build stage - только компиляция
+# ============================================
 
 build:
   stage: build
@@ -36,6 +46,10 @@ build:
       - services/*/target/
       - common/*/target/
     expire_in: 1 hour
+
+# ============================================
+# Unit Test stage - быстрые тесты
+# ============================================
 
 unit-test:
   stage: unit-test
@@ -52,6 +66,10 @@ unit-test:
     paths:
       - '**/target/surefire-reports/'
     expire_in: 1 week
+
+# ============================================
+# Integration Test stage - тесты с БД
+# ============================================
 
 integration-test:
   stage: integration-test
@@ -80,6 +98,10 @@ integration-test:
   needs:
     - unit-test
 
+# ============================================
+# Package stage - Docker образы (параллельно)
+# ============================================
+
 package:
   stage: package
   tags: [ local, shell, wsl ]
@@ -87,19 +109,22 @@ package:
     - echo "Checking Docker..."
     - docker --version || echo "Docker not found"
   script:
-    # Сборка образов
-    - docker build -t $CI_REGISTRY_IMAGE/auth-service:latest -f services/auth-service/Dockerfile .
-    - docker build -t $CI_REGISTRY_IMAGE/car-service:latest -f services/car-service/Dockerfile .
-    - docker build -t $CI_REGISTRY_IMAGE/scheduler-service:latest -f services/scheduler-service/Dockerfile .
-    - docker build -t $CI_REGISTRY_IMAGE/gateway-service:latest -f services/gateway-service/Dockerfile .
-    - docker build -t $CI_REGISTRY_IMAGE/frontend:latest -f frontend/Dockerfile frontend
-
-    # Публикация образов
-    - docker push $CI_REGISTRY_IMAGE/auth-service:latest
-    - docker push $CI_REGISTRY_IMAGE/car-service:latest
-    - docker push $CI_REGISTRY_IMAGE/scheduler-service:latest
-    - docker push $CI_REGISTRY_IMAGE/gateway-service:latest
-    - docker push $CI_REGISTRY_IMAGE/frontend:latest
+    # Параллельная сборка Docker образов
+    - |
+      docker build -t $CI_REGISTRY_IMAGE/auth-service:latest -f services/auth-service/Dockerfile . &
+      docker build -t $CI_REGISTRY_IMAGE/car-service:latest -f services/car-service/Dockerfile . &
+      docker build -t $CI_REGISTRY_IMAGE/scheduler-service:latest -f services/scheduler-service/Dockerfile . &
+      docker build -t $CI_REGISTRY_IMAGE/gateway-service:latest -f services/gateway-service/Dockerfile . &
+      docker build -t $CI_REGISTRY_IMAGE/frontend:latest -f frontend/Dockerfile frontend &
+      wait
+      
+      # Параллельная публикация
+      docker push $CI_REGISTRY_IMAGE/auth-service:latest &
+      docker push $CI_REGISTRY_IMAGE/car-service:latest &
+      docker push $CI_REGISTRY_IMAGE/scheduler-service:latest &
+      docker push $CI_REGISTRY_IMAGE/gateway-service:latest &
+      docker push $CI_REGISTRY_IMAGE/frontend:latest &
+      wait
   only:
     - main
   needs:

@@ -15,7 +15,7 @@ variables:
   POSTGRES_DB: test
   REDIS_PASSWORD: ""
 
-timeout: 2h
+timeout: 2h  # <--- Добавить таймаут
 
 cache:
   key: "$CI_COMMIT_REF_SLUG"
@@ -28,11 +28,10 @@ cache:
 
 build:
   stage: build
-  tags: [local, shell, wsl]
-  before_script:
-    - chmod +x ./mvnw
+  tags: [ local, shell, wsl ]  # <--- Добавить теги
   script:
-    - ./mvnw $MAVEN_CLI_OPTS compile
+    - chmod +x ./mvnw  # <--- Добавить права
+    - ./mvnw $MAVEN_CLI_OPTS compile  # <--- Заменить mvn на ./mvnw
   artifacts:
     paths:
       - services/*/target/
@@ -41,11 +40,10 @@ build:
 
 unit-test:
   stage: unit-test
-  tags: [local, shell, wsl]
-  before_script:
-    - chmod +x ./mvnw
+  tags: [ local, shell, wsl ]  # <--- Добавить теги
   script:
-    - ./mvnw $MAVEN_CLI_OPTS test -Dmaven.test.failure.ignore=true -Dsurefire.failIfNoSpecifiedTests=false
+    - chmod +x ./mvnw  # <--- Добавить права
+    - ./mvnw $MAVEN_CLI_OPTS test -Dmaven.test.failure.ignore=true -Dsurefire.failIfNoSpecifiedTests=false  # <--- Заменить mvn на ./mvnw
   artifacts:
     when: always
     reports:
@@ -57,18 +55,18 @@ unit-test:
 
 integration-test:
   stage: integration-test
-  tags: [local, shell, wsl]
-  before_script:
-    - chmod +x ./mvnw
-    - echo "Checking Docker..."
-    - docker --version || echo "Docker not found"
+  tags: [ local, shell, wsl ]  # <--- Добавить теги
   variables:
-    TESTCONTAINERS_HOST_OVERRIDE: localhost
+    TESTCONTAINERS_HOST_OVERRIDE: localhost  # <--- Изменить с docker на localhost
     SPRING_DATASOURCE_URL: jdbc:tc:postgresql:16-alpine:///testdb
     SPRING_DATASOURCE_USERNAME: postgres
     SPRING_DATASOURCE_PASSWORD: postgres
+  before_script:
+    - chmod +x ./mvnw  # <--- Добавить права
+    - echo "Checking Docker..."
+    - docker --version || echo "Docker not found"
   script:
-    - ./mvnw $MAVEN_CLI_OPTS verify -DskipUnitTests=true -Dmaven.test.failure.ignore=true
+    - ./mvnw $MAVEN_CLI_OPTS verify -DskipUnitTests=true -Dmaven.test.failure.ignore=true  # <--- Заменить mvn на ./mvnw
   artifacts:
     when: always
     reports:
@@ -84,17 +82,19 @@ integration-test:
 
 package:
   stage: package
-  tags: [local, shell, wsl]
+  tags: [ local, shell, wsl ]  # <--- Добавить теги
   before_script:
     - echo "Checking Docker..."
     - docker --version || echo "Docker not found"
   script:
+    # Параллельная сборка
     - docker build -t $CI_REGISTRY_IMAGE/auth-service:latest -f services/auth-service/Dockerfile . &
     - docker build -t $CI_REGISTRY_IMAGE/car-service:latest -f services/car-service/Dockerfile . &
     - docker build -t $CI_REGISTRY_IMAGE/scheduler-service:latest -f services/scheduler-service/Dockerfile . &
     - docker build -t $CI_REGISTRY_IMAGE/gateway-service:latest -f services/gateway-service/Dockerfile . &
     - docker build -t $CI_REGISTRY_IMAGE/frontend:latest -f frontend/Dockerfile frontend &
     - wait
+    # Параллельная публикация
     - docker push $CI_REGISTRY_IMAGE/auth-service:latest &
     - docker push $CI_REGISTRY_IMAGE/car-service:latest &
     - docker push $CI_REGISTRY_IMAGE/scheduler-service:latest &

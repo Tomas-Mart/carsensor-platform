@@ -22,17 +22,16 @@ cache:
     - frontend/node_modules/
   policy: pull-push
 
-# Общий шаблон для Maven задач
 .maven-job: &maven-job
-  image: maven:3.9.9-eclipse-temurin-21-alpine
   before_script:
-    - apk add --no-cache curl
-
+    - echo "Skipping curl installation"
 build:
   stage: build
   <<: *maven-job
+  tags: [ local, shell, wsl ]
   script:
-    - mvn $MAVEN_CLI_OPTS compile
+    - chmod +x ./mvnw
+    - ./mvnw $MAVEN_CLI_OPTS compile
   artifacts:
     paths:
       - services/*/target/
@@ -42,9 +41,10 @@ build:
 unit-test:
   stage: unit-test
   <<: *maven-job
+  tags: [ local, shell, wsl ]
   script:
-    # Запускаем тесты со специальными параметрами для JUnit 5
-    - mvn $MAVEN_CLI_OPTS test -Dmaven.test.failure.ignore=true -Dsurefire.failIfNoSpecifiedTests=false
+    - chmod +x ./mvnw
+    - ./mvnw $MAVEN_CLI_OPTS test -Dmaven.test.failure.ignore=true -Dsurefire.failIfNoSpecifiedTests=false
   artifacts:
     when: always
     reports:
@@ -56,25 +56,18 @@ unit-test:
 
 integration-test:
   stage: integration-test
-  image: maven:3.9.9-eclipse-temurin-21-alpine
-  services:
-    - name: docker:dind
-      alias: docker
-    - name: postgres:16-alpine
-      alias: postgres
-    - name: redis:7.2-alpine
-      alias: redis
+  tags: [ local, shell, wsl ]
   variables:
-    TESTCONTAINERS_HOST_OVERRIDE: docker
+    TESTCONTAINERS_HOST_OVERRIDE: localhost
     SPRING_DATASOURCE_URL: jdbc:tc:postgresql:16-alpine:///testdb
     SPRING_DATASOURCE_USERNAME: postgres
     SPRING_DATASOURCE_PASSWORD: postgres
   before_script:
-    - apk add --no-cache docker-cli curl
-    - until docker info; do sleep 1; done
+    - chmod +x ./mvnw
+    - echo "Checking Docker..."
+    - docker --version || echo "Docker not found"
   script:
-    # Запускаем интеграционные тесты
-    - mvn $MAVEN_CLI_OPTS verify -DskipUnitTests=true -Dmaven.test.failure.ignore=true
+    - ./mvnw $MAVEN_CLI_OPTS verify -DskipUnitTests=true -Dmaven.test.failure.ignore=true
   artifacts:
     when: always
     reports:
@@ -90,20 +83,17 @@ integration-test:
 
 package:
   stage: package
-  image: docker:27.3-git
-  services:
-    - docker:dind
+  tags: [ local, shell, wsl ]
   before_script:
-    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - echo "Checking Docker..."
+    - docker --version || echo "Docker not found"
   script:
-    # Сборка образов
     - docker build -t $CI_REGISTRY_IMAGE/auth-service:latest -f services/auth-service/Dockerfile .
     - docker build -t $CI_REGISTRY_IMAGE/car-service:latest -f services/car-service/Dockerfile .
     - docker build -t $CI_REGISTRY_IMAGE/scheduler-service:latest -f services/scheduler-service/Dockerfile .
     - docker build -t $CI_REGISTRY_IMAGE/gateway-service:latest -f services/gateway-service/Dockerfile .
     - docker build -t $CI_REGISTRY_IMAGE/frontend:latest -f frontend/Dockerfile frontend
 
-    # Публикация образов
     - docker push $CI_REGISTRY_IMAGE/auth-service:latest
     - docker push $CI_REGISTRY_IMAGE/car-service:latest
     - docker push $CI_REGISTRY_IMAGE/scheduler-service:latest

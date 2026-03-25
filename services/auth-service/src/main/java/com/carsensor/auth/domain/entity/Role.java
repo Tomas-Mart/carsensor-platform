@@ -46,7 +46,7 @@ public class Role {
     @Builder.Default
     private Set<Permission> permissions = new HashSet<>();
 
-    // Добавляем обратную связь с пользователями
+    // Обратная связь с пользователями
     @ManyToMany(mappedBy = "roles")
     @Builder.Default
     private Set<User> users = new HashSet<>();

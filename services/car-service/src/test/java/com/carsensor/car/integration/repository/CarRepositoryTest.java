@@ -9,6 +9,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.jpa.domain.Specification;
@@ -19,65 +20,57 @@ import com.carsensor.common.test.AbstractJpaTest;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Интеграционные тесты для CarRepository
- * Использует Testcontainers с реальной PostgreSQL
+ * Интеграционные тесты для CarRepository.
+ *
+ * <p>Наследует AbstractJpaTest для получения embedded PostgreSQL,
+ * но добавляет @DataJpaTest для загрузки JPA контекста.
  */
+@DataJpaTest
 @DisplayName("Интеграционные тесты CarRepository")
 class CarRepositoryTest extends AbstractJpaTest {
 
     @Autowired
     private CarRepository carRepository;
 
-    private Car testCar1;
-    private Car testCar2;
-    private Car testCar3;
-
     @BeforeEach
     void setUp() {
         carRepository.deleteAll();
 
-        testCar1 = Car.builder()
-                .brand("Toyota")
-                .model("Camry")
-                .year(2020)
-                .mileage(50000)
-                .price(new BigDecimal("2500000"))
-                .exteriorColor("White")
-                .transmission("AT")
-                .driveType("2WD")
-                .parsedAt(LocalDateTime.now())
-                .externalId("TOYOTA_CAMRY_001")
-                .build();
+        Car testCar1 = createCar(
+                "Toyota", "Camry", 2020, 50000, new BigDecimal("2500000"),
+                "White", "AT", "2WD", LocalDateTime.now(), "TOYOTA_CAMRY_001"
+        );
 
-        testCar2 = Car.builder()
-                .brand("Toyota")
-                .model("RAV4")
-                .year(2021)
-                .mileage(30000)
-                .price(new BigDecimal("3500000"))
-                .exteriorColor("Black")
-                .transmission("CVT")
-                .driveType("4WD")
-                .parsedAt(LocalDateTime.now().minusDays(1))
-                .externalId("TOYOTA_RAV4_001")
-                .build();
+        Car testCar2 = createCar(
+                "Toyota", "RAV4", 2021, 30000, new BigDecimal("3500000"),
+                "Black", "CVT", "4WD", LocalDateTime.now().minusDays(1), "TOYOTA_RAV4_001"
+        );
 
-        testCar3 = Car.builder()
-                .brand("Honda")
-                .model("Civic")
-                .year(2022)
-                .mileage(10000)
-                .price(new BigDecimal("1800000"))
-                .exteriorColor("Red")
-                .transmission("MT")
-                .driveType("2WD")
-                .parsedAt(LocalDateTime.now().minusDays(2))
-                .externalId("HONDA_CIVIC_001")
-                .build();
+        Car testCar3 = createCar(
+                "Honda", "Civic", 2022, 10000, new BigDecimal("1800000"),
+                "Red", "MT", "2WD", LocalDateTime.now().minusDays(2), "HONDA_CIVIC_001"
+        );
 
-        testCar1 = carRepository.save(testCar1);
-        testCar2 = carRepository.save(testCar2);
-        testCar3 = carRepository.save(testCar3);
+        carRepository.save(testCar1);
+        carRepository.save(testCar2);
+        carRepository.save(testCar3);
+    }
+
+    private Car createCar(String brand, String model, int year, int mileage, BigDecimal price,
+                          String exteriorColor, String transmission, String driveType,
+                          LocalDateTime parsedAt, String externalId) {
+        return Car.builder()
+                .brand(brand)
+                .model(model)
+                .year(year)
+                .mileage(mileage)
+                .price(price)
+                .exteriorColor(exteriorColor)
+                .transmission(transmission)
+                .driveType(driveType)
+                .parsedAt(parsedAt)
+                .externalId(externalId)
+                .build();
     }
 
     @Nested
@@ -105,7 +98,11 @@ class CarRepositoryTest extends AbstractJpaTest {
         @Test
         @DisplayName("Поиск автомобиля по ID")
         void findById_ShouldReturnCar() {
-            Optional<Car> found = carRepository.findById(testCar1.getId());
+            List<Car> allCars = carRepository.findAll();
+            assertThat(allCars).isNotEmpty();
+
+            Long firstCarId = allCars.getFirst().getId();
+            Optional<Car> found = carRepository.findById(firstCarId);
 
             assertThat(found).isPresent();
             assertThat(found.get().getBrand()).isEqualTo("Toyota");
@@ -115,9 +112,13 @@ class CarRepositoryTest extends AbstractJpaTest {
         @Test
         @DisplayName("Удаление автомобиля")
         void deleteById_ShouldRemoveCar() {
-            carRepository.deleteById(testCar1.getId());
+            List<Car> allCars = carRepository.findAll();
+            assertThat(allCars).isNotEmpty();
 
-            Optional<Car> found = carRepository.findById(testCar1.getId());
+            Long firstCarId = allCars.getFirst().getId();
+            carRepository.deleteById(firstCarId);
+
+            Optional<Car> found = carRepository.findById(firstCarId);
             assertThat(found).isEmpty();
         }
 
@@ -189,7 +190,7 @@ class CarRepositoryTest extends AbstractJpaTest {
             List<Object[]> yearRange = carRepository.findYearRange();
 
             assertThat(yearRange).isNotEmpty();
-            Object[] range = yearRange.get(0);
+            Object[] range = yearRange.getFirst();
             assertThat(range[0]).isEqualTo(2020);
             assertThat(range[1]).isEqualTo(2022);
         }
@@ -200,7 +201,7 @@ class CarRepositoryTest extends AbstractJpaTest {
             List<Object[]> priceRange = carRepository.findPriceRange();
 
             assertThat(priceRange).isNotEmpty();
-            Object[] range = priceRange.get(0);
+            Object[] range = priceRange.getFirst();
 
             assertThat((BigDecimal) range[0])
                     .isEqualByComparingTo(new BigDecimal("1800000"));
@@ -220,7 +221,7 @@ class CarRepositoryTest extends AbstractJpaTest {
             List<Car> recentlyParsed = carRepository.findRecentlyParsed(since);
 
             assertThat(recentlyParsed).hasSize(1);
-            assertThat(recentlyParsed.get(0).getModel()).isEqualTo("Camry");
+            assertThat(recentlyParsed.getFirst().getModel()).isEqualTo("Camry");
         }
 
         @Test
@@ -258,7 +259,7 @@ class CarRepositoryTest extends AbstractJpaTest {
             List<Car> carsInRange = carRepository.findAll(spec);
 
             assertThat(carsInRange).hasSize(1);
-            assertThat(carsInRange.get(0).getModel()).isEqualTo("Camry");
+            assertThat(carsInRange.getFirst().getModel()).isEqualTo("Camry");
         }
 
         @Test

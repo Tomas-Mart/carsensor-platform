@@ -1,4 +1,4 @@
-package com.carsensor.car.config;
+package com.carsensor.car.infrastructure.config;
 
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;

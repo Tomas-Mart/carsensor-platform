@@ -17,7 +17,9 @@ public sealed class PlatformException extends RuntimeException
         PlatformException.MissingTokenException,
         PlatformException.InvalidTokenFormatException,
         PlatformException.InvalidTokenException,
-        PlatformException.TokenExpiredException {
+        PlatformException.TokenExpiredException,
+        PlatformException.UnauthorizedException,
+        PlatformException.UserBlockedException {  // ДОБАВЬТЕ ЭТУ СТРОКУ
 
     private final String errorCode;
     private final String userMessage;
@@ -83,6 +85,16 @@ public sealed class PlatformException extends RuntimeException
                     null
             );
         }
+
+        public InvalidCredentialsException(String message) {
+            super(
+                    "INVALID_CREDENTIALS",
+                    message,
+                    message,
+                    null,
+                    null
+            );
+        }
     }
 
     /**
@@ -95,6 +107,16 @@ public sealed class PlatformException extends RuntimeException
                     "У вас нет прав для выполнения этого действия",
                     "Access denied for user: " + username + ", required role: " + requiredRole,
                     new Object[]{username, requiredRole},
+                    null
+            );
+        }
+
+        public AccessDeniedException(String username, String message, String technicalMessage) {
+            super(
+                    "ACCESS_DENIED",
+                    message,
+                    technicalMessage,
+                    new Object[]{username},
                     null
             );
         }
@@ -188,6 +210,16 @@ public sealed class PlatformException extends RuntimeException
                     null
             );
         }
+
+        public InvalidTokenException(String message, Throwable cause) {
+            super(
+                    "INVALID_TOKEN",
+                    message,
+                    "Invalid token: " + message,
+                    null,
+                    cause
+            );
+        }
     }
 
     /**
@@ -201,6 +233,46 @@ public sealed class PlatformException extends RuntimeException
                     "Token expired: " + message,
                     null,
                     null
+            );
+        }
+    }
+
+    /**
+     * Пользователь заблокирован
+     */
+    public static final class UserBlockedException extends PlatformException {
+        public UserBlockedException(String username) {
+            super(
+                    "USER_BLOCKED",
+                    "Учетная запись заблокирована",
+                    "User account is blocked: " + username,
+                    new Object[]{username},
+                    null
+            );
+        }
+    }
+
+    /**
+     * Неавторизованный доступ (401 Unauthorized)
+     */
+    public static final class UnauthorizedException extends PlatformException {
+        public UnauthorizedException(String message) {
+            super(
+                    "UNAUTHORIZED",
+                    message,
+                    "Unauthorized: " + message,
+                    null,
+                    null
+            );
+        }
+
+        public UnauthorizedException(String message, Throwable cause) {
+            super(
+                    "UNAUTHORIZED",
+                    message,
+                    "Unauthorized: " + message,
+                    null,
+                    cause
             );
         }
     }

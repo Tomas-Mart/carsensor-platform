@@ -16,34 +16,94 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.4.2</version>
+        <version>3.4.11</version>
         <relativePath/>
     </parent>
 
+    <!-- ============================================================
+         СВОЙСТВА ПРОЕКТА
+         ============================================================ -->
     <properties>
+        <!-- Java и кодировка -->
         <java.version>21</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <spring-cloud.version>2024.0.0</spring-cloud.version>
-        <jsoup.version>1.22.1</jsoup.version>
+
+        <!-- Spring и основные BOM -->
+        <spring-cloud.version>2024.0.3</spring-cloud.version>
         <resilience4j.version>2.4.0</resilience4j.version>
+
+        <!-- Безопасность и JWT -->
         <jjwt.version>0.13.0</jjwt.version>
-        <lombok.version>1.18.34</lombok.version>
-        <mapstruct.version>1.6.2</mapstruct.version>
-        <testcontainers.version>1.21.0</testcontainers.version>
+
+        <!-- Утилиты и библиотеки -->
+        <jsoup.version>1.22.1</jsoup.version>
         <okhttp.version>4.12.0</okhttp.version>
         <wiremock.version>3.12.1</wiremock.version>
-        <maven-surefire-plugin.version>3.2.5</maven-surefire-plugin.version>
-        <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
-        <jacoco.version>0.8.14</jacoco.version>
-        <docker-java.version>3.4.2</docker-java.version>
-        <duct-tape.version>1.0.8</duct-tape.version>
-        <commons-compress.version>1.26.0</commons-compress.version>
-        <jetbrains-annotations.version>24.0.0</jetbrains-annotations.version>
-        <slf4j-simple.version>2.0.16</slf4j-simple.version>
-        <mockito.version>5.23.0</mockito.version>
         <rxjava.version>3.1.10</rxjava.version>
+
+        <!-- Генерация кода -->
+        <lombok.version>1.18.36</lombok.version>
+        <mapstruct.version>1.6.2</mapstruct.version>
+
+        <!-- Валидация и тестовые утилиты -->
+        <assertj.version>3.27.7</assertj.version>
+        <mockito.version>5.14.2</mockito.version>
+        <awaitility.version>4.2.0</awaitility.version>
+        <jakarta-validation.version>3.0.2</jakarta-validation.version>
+        <hibernate-validator.version>9.1.0.Final</hibernate-validator.version>
+        <jakarta-el.version>4.0.2</jakarta-el.version>
+        <junit.version>5.11.4</junit.version>
+        <byte-buddy.version>1.15.11</byte-buddy.version>
+
+        <!-- JSON Processing -->
+        <json-path.version>2.9.0</json-path.version>
+        <json-smart.version>2.5.2</json-smart.version>
+
+        <!-- Docker и контейнеризация -->
+        <jetbrains-annotations.version>24.0.0</jetbrains-annotations.version>
+
+        <!-- Логирование -->
+        <slf4j-simple.version>2.0.16</slf4j-simple.version>
+        <logback.version>1.5.25</logback.version>
+
+        <!-- Документация -->
+        <springdoc.version>2.5.0</springdoc.version>
+
+        <!-- Jackson -->
+        <jackson.version>2.18.6</jackson.version>
+
+        <!-- Сетевые библиотеки -->
+        <netty.version>4.1.130.Final</netty.version>
+        <tomcat.version>11.0.18</tomcat.version>
+
+        <!-- Apache Commons -->
+        <commons-io.version>2.18.0</commons-io.version>
+        <commons-lang3.version>3.18.0</commons-lang3.version>
+        <mchange-commons.version>0.4.0</mchange-commons.version>
+
+        <!-- Maven плагины -->
+        <maven-surefire-plugin.version>3.5.2</maven-surefire-plugin.version>
+        <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
+        <jacoco.version>0.8.12</jacoco.version>
+        <flyway-maven-plugin.version>10.20.1</flyway-maven-plugin.version>
+
+        <!-- Embedded PostgreSQL -->
+        <embedded-postgres.version>2.0.7</embedded-postgres.version>
+
+        <!-- H2 Database -->
+        <h2.version>2.3.232</h2.version>
+
+        <!-- Spring Security Test -->
+        <spring-security-test.version>6.4.12</spring-security-test.version>
+
+        <!-- ANSI Colors -->
+        <spring.output.ansi.enabled>ALWAYS</spring.output.ansi.enabled>
+        <jansi.enabled>true</jansi.enabled>
     </properties>
 
+    <!-- ============================================================
+         МОДУЛИ ПРОЕКТА
+         ============================================================ -->
     <modules>
         <module>jacoco-aggregate</module>
         <module>common/common-dto</module>
@@ -56,8 +116,15 @@
         <module>services/gateway-service</module>
     </modules>
 
+    <!-- ============================================================
+         УПРАВЛЕНИЕ ЗАВИСИМОСТЯМИ
+         ============================================================ -->
     <dependencyManagement>
         <dependencies>
+
+            <!-- ====================================================
+                 ОСНОВНЫЕ BOM (Bill of Materials)
+                 ================================================= -->
             <!-- Spring Cloud BOM -->
             <dependency>
                 <groupId>org.springframework.cloud</groupId>
@@ -67,16 +134,7 @@
                 <scope>import</scope>
             </dependency>
 
-            <!-- Testcontainers BOM -->
-            <dependency>
-                <groupId>org.testcontainers</groupId>
-                <artifactId>testcontainers-bom</artifactId>
-                <version>${testcontainers.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-
-            <!-- Resilience4j BOM - должен быть до зависимостей проекта, но после других BOM -->
+            <!-- Resilience4j BOM -->
             <dependency>
                 <groupId>io.github.resilience4j</groupId>
                 <artifactId>resilience4j-bom</artifactId>
@@ -85,67 +143,84 @@
                 <scope>import</scope>
             </dependency>
 
-            <!-- Модули проекта -->
+            <!-- JUnit 5 BOM -->
+            <dependency>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter</artifactId>
+                <version>${junit.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <!-- Jackson BOM -->
+            <dependency>
+                <groupId>com.fasterxml.jackson</groupId>
+                <artifactId>jackson-bom</artifactId>
+                <version>${jackson.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <!-- Mockito BOM -->
+            <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-bom</artifactId>
+                <version>${mockito.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <!-- Netty BOM -->
+            <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-bom</artifactId>
+                <version>${netty.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <!-- ====================================================
+                 МОДУЛИ ПРОЕКТА
+                 ================================================= -->
             <dependency>
                 <groupId>com.carsensor.platform</groupId>
                 <artifactId>common-dto</artifactId>
                 <version>${project.version}</version>
             </dependency>
+
             <dependency>
                 <groupId>com.carsensor.platform</groupId>
                 <artifactId>common-exception</artifactId>
                 <version>${project.version}</version>
             </dependency>
+
             <dependency>
                 <groupId>com.carsensor.platform</groupId>
                 <artifactId>common-util</artifactId>
                 <version>${project.version}</version>
             </dependency>
+
             <dependency>
                 <groupId>com.carsensor.platform</groupId>
                 <artifactId>common-test</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
-            <!-- Библиотеки с фиксированными версиями (не управляемые BOM) -->
+            <!-- ====================================================
+                 ВЕБ И УТИЛИТЫ
+                 ================================================= -->
             <dependency>
                 <groupId>org.jsoup</groupId>
                 <artifactId>jsoup</artifactId>
                 <version>${jsoup.version}</version>
             </dependency>
 
-            <!-- JJWT -->
-            <dependency>
-                <groupId>io.jsonwebtoken</groupId>
-                <artifactId>jjwt-api</artifactId>
-                <version>${jjwt.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.jsonwebtoken</groupId>
-                <artifactId>jjwt-impl</artifactId>
-                <version>${jjwt.version}</version>
-                <scope>runtime</scope>
-            </dependency>
-            <dependency>
-                <groupId>io.jsonwebtoken</groupId>
-                <artifactId>jjwt-jackson</artifactId>
-                <version>${jjwt.version}</version>
-                <scope>runtime</scope>
-            </dependency>
-
-            <!-- OkHttp -->
             <dependency>
                 <groupId>com.squareup.okhttp3</groupId>
                 <artifactId>okhttp</artifactId>
                 <version>${okhttp.version}</version>
             </dependency>
-            <dependency>
-                <groupId>com.squareup.okhttp3</groupId>
-                <artifactId>mockwebserver</artifactId>
-                <version>${okhttp.version}</version>
-            </dependency>
 
-            <!-- WireMock -->
             <dependency>
                 <groupId>org.wiremock</groupId>
                 <artifactId>wiremock-standalone</artifactId>
@@ -153,56 +228,67 @@
                 <scope>test</scope>
             </dependency>
 
-            <!-- Docker Java -->
-            <dependency>
-                <groupId>com.github.docker-java</groupId>
-                <artifactId>docker-java-api</artifactId>
-                <version>${docker-java.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.github.docker-java</groupId>
-                <artifactId>docker-java-transport-zerodep</artifactId>
-                <version>${docker-java.version}</version>
-            </dependency>
-
-            <!-- Duct Tape -->
-            <dependency>
-                <groupId>org.rnorth.duct-tape</groupId>
-                <artifactId>duct-tape</artifactId>
-                <version>${duct-tape.version}</version>
-            </dependency>
-
-            <!-- Apache Commons Compress -->
-            <dependency>
-                <groupId>org.apache.commons</groupId>
-                <artifactId>commons-compress</artifactId>
-                <version>${commons-compress.version}</version>
-            </dependency>
-
-            <!-- JetBrains Annotations -->
-            <dependency>
-                <groupId>org.jetbrains</groupId>
-                <artifactId>annotations</artifactId>
-                <version>${jetbrains-annotations.version}</version>
-            </dependency>
-
-            <!-- SLF4J Simple -->
-            <dependency>
-                <groupId>org.slf4j</groupId>
-                <artifactId>slf4j-simple</artifactId>
-                <version>${slf4j-simple.version}</version>
-                <scope>test</scope>
-            </dependency>
-
-            <!-- RxJava -->
             <dependency>
                 <groupId>io.reactivex.rxjava3</groupId>
                 <artifactId>rxjava</artifactId>
                 <version>${rxjava.version}</version>
             </dependency>
 
-            <!-- Lombok - версия уже определена в spring-boot-parent,
-                 но мы можем переопределить если нужно -->
+            <dependency>
+                <groupId>com.jayway.jsonpath</groupId>
+                <artifactId>json-path</artifactId>
+                <version>${json-path.version}</version>
+                <scope>test</scope>
+            </dependency>
+
+            <!-- ====================================================
+                 БЕЗОПАСНОСТЬ И JWT
+                 ================================================= -->
+            <dependency>
+                <groupId>io.jsonwebtoken</groupId>
+                <artifactId>jjwt-api</artifactId>
+                <version>${jjwt.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.jsonwebtoken</groupId>
+                <artifactId>jjwt-impl</artifactId>
+                <version>${jjwt.version}</version>
+                <scope>runtime</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>io.jsonwebtoken</groupId>
+                <artifactId>jjwt-jackson</artifactId>
+                <version>${jjwt.version}</version>
+                <scope>runtime</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>org.springframework.security</groupId>
+                <artifactId>spring-security-test</artifactId>
+                <version>${spring-security-test.version}</version>
+                <scope>test</scope>
+            </dependency>
+
+            <!-- ====================================================
+                 ДОКУМЕНТАЦИЯ (OpenAPI)
+                 ================================================= -->
+            <dependency>
+                <groupId>org.springdoc</groupId>
+                <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+                <version>${springdoc.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.springdoc</groupId>
+                <artifactId>springdoc-openapi-starter-common</artifactId>
+                <version>${springdoc.version}</version>
+            </dependency>
+
+            <!-- ====================================================
+                 ГЕНЕРАЦИЯ КОДА
+                 ================================================= -->
             <dependency>
                 <groupId>org.projectlombok</groupId>
                 <artifactId>lombok</artifactId>
@@ -210,21 +296,195 @@
                 <scope>provided</scope>
             </dependency>
 
-            <!-- MapStruct -->
             <dependency>
                 <groupId>org.mapstruct</groupId>
                 <artifactId>mapstruct</artifactId>
                 <version>${mapstruct.version}</version>
             </dependency>
+
             <dependency>
                 <groupId>org.mapstruct</groupId>
                 <artifactId>mapstruct-processor</artifactId>
                 <version>${mapstruct.version}</version>
                 <scope>provided</scope>
             </dependency>
+
+            <!-- ====================================================
+                 ВАЛИДАЦИЯ
+                 ================================================= -->
+            <dependency>
+                <groupId>jakarta.validation</groupId>
+                <artifactId>jakarta.validation-api</artifactId>
+                <version>${jakarta-validation.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.hibernate.validator</groupId>
+                <artifactId>hibernate-validator</artifactId>
+                <version>${hibernate-validator.version}</version>
+                <scope>test</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>org.glassfish</groupId>
+                <artifactId>jakarta.el</artifactId>
+                <version>${jakarta-el.version}</version>
+                <scope>test</scope>
+            </dependency>
+
+            <!-- ====================================================
+                 ТЕСТОВЫЕ УТИЛИТЫ
+                 ================================================= -->
+            <dependency>
+                <groupId>org.assertj</groupId>
+                <artifactId>assertj-core</artifactId>
+                <version>${assertj.version}</version>
+                <scope>test</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>org.awaitility</groupId>
+                <artifactId>awaitility</artifactId>
+                <version>${awaitility.version}</version>
+                <scope>test</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>net.bytebuddy</groupId>
+                <artifactId>byte-buddy</artifactId>
+                <version>${byte-buddy.version}</version>
+                <scope>test</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>net.bytebuddy</groupId>
+                <artifactId>byte-buddy-agent</artifactId>
+                <version>${byte-buddy.version}</version>
+                <scope>test</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>com.h2database</groupId>
+                <artifactId>h2</artifactId>
+                <version>${h2.version}</version>
+                <scope>test</scope>
+            </dependency>
+
+            <!-- ====================================================
+                 БАЗА ДАННЫХ
+                 ================================================= -->
+            <dependency>
+                <groupId>io.zonky.test</groupId>
+                <artifactId>embedded-postgres</artifactId>
+                <version>${embedded-postgres.version}</version>
+                <scope>test</scope>
+            </dependency>
+
+            <!-- ====================================================
+                 APACHE COMMONS
+                 ================================================= -->
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-lang3</artifactId>
+                <version>${commons-lang3.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>commons-io</groupId>
+                <artifactId>commons-io</artifactId>
+                <version>${commons-io.version}</version>
+            </dependency>
+
+            <!-- ====================================================
+                 JETBRAINS ANNOTATIONS
+                 ================================================= -->
+            <dependency>
+                <groupId>org.jetbrains</groupId>
+                <artifactId>annotations</artifactId>
+                <version>${jetbrains-annotations.version}</version>
+            </dependency>
+
+            <!-- ====================================================
+                 ЛОГИРОВАНИЕ
+                 ================================================= -->
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-simple</artifactId>
+                <version>${slf4j-simple.version}</version>
+                <scope>test</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>ch.qos.logback</groupId>
+                <artifactId>logback-core</artifactId>
+                <version>${logback.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>ch.qos.logback</groupId>
+                <artifactId>logback-classic</artifactId>
+                <version>${logback.version}</version>
+            </dependency>
+
+            <!-- ====================================================
+                 TOMCAT
+                 ================================================= -->
+            <dependency>
+                <groupId>org.apache.tomcat.embed</groupId>
+                <artifactId>tomcat-embed-core</artifactId>
+                <version>${tomcat.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.tomcat.embed</groupId>
+                <artifactId>tomcat-embed-websocket</artifactId>
+                <version>${tomcat.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.tomcat.embed</groupId>
+                <artifactId>tomcat-embed-el</artifactId>
+                <version>${tomcat.version}</version>
+            </dependency>
+
+            <!-- ====================================================
+                 JSON PROCESSING
+                 ================================================= -->
+            <dependency>
+                <groupId>net.minidev</groupId>
+                <artifactId>json-smart</artifactId>
+                <version>${json-smart.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>net.minidev</groupId>
+                <artifactId>accessors-smart</artifactId>
+                <version>${json-smart.version}</version>
+            </dependency>
+
+            <!-- ====================================================
+                 ДРУГИЕ БИБЛИОТЕКИ
+                 ================================================= -->
+            <dependency>
+                <groupId>com.mchange</groupId>
+                <artifactId>mchange-commons-java</artifactId>
+                <version>${mchange-commons.version}</version>
+            </dependency>
+
+            <!-- ANSI Colors support -->
+            <dependency>
+                <groupId>org.fusesource.jansi</groupId>
+                <artifactId>jansi</artifactId>
+                <version>2.4.1</version>
+                <scope>runtime</scope>
+            </dependency>
+
         </dependencies>
     </dependencyManagement>
 
+    <!-- ============================================================
+         РЕПОЗИТОРИИ
+         ============================================================ -->
     <repositories>
         <repository>
             <id>central</id>
@@ -253,9 +513,40 @@
         </pluginRepository>
     </pluginRepositories>
 
+    <!-- ============================================================
+         УПРАВЛЕНИЕ ПЛАГИНАМИ
+         ============================================================ -->
     <build>
         <pluginManagement>
             <plugins>
+
+                <!-- Surefire плагин для тестов -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-surefire-plugin</artifactId>
+                    <version>${maven-surefire-plugin.version}</version>
+                    <configuration>
+                        <argLine>
+                            -Duser.country=US
+                            -Duser.language=en
+                            -Dstyle.color=always
+                            -Dfile.encoding=UTF-8
+                            -XX:+EnableDynamicAgentLoading
+                            -Djdk.attach.allowAttachSelf=true
+                            -Dorg.fusesource.jansi.enabled=${jansi.enabled}
+                            -Dspring.output.ansi.enabled=${spring.output.ansi.enabled}
+                        </argLine>
+                        <forkCount>1</forkCount>
+                        <reuseForks>false</reuseForks>
+                        <systemPropertyVariables>
+                            <spring.output.ansi.enabled>${spring.output.ansi.enabled}</spring.output.ansi.enabled>
+                            <org.fusesource.jansi.enabled>${jansi.enabled}</org.fusesource.jansi.enabled>
+                        </systemPropertyVariables>
+                        <useSystemClassLoader>false</useSystemClassLoader>
+                    </configuration>
+                </plugin>
+
+                <!-- Compiler плагин -->
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
@@ -280,6 +571,8 @@
                         </compilerArgs>
                     </configuration>
                 </plugin>
+
+                <!-- Spring Boot плагин -->
                 <plugin>
                     <groupId>org.springframework.boot</groupId>
                     <artifactId>spring-boot-maven-plugin</artifactId>
@@ -290,25 +583,33 @@
                                 <artifactId>lombok</artifactId>
                             </exclude>
                         </excludes>
+                        <jvmArguments>
+                            -Dspring.output.ansi.enabled=${spring.output.ansi.enabled}
+                        </jvmArguments>
                     </configuration>
                 </plugin>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-surefire-plugin</artifactId>
-                    <version>${maven-surefire-plugin.version}</version>
-                    <configuration>
-                        <argLine>-XX:+EnableDynamicAgentLoading</argLine>
-                    </configuration>
-                </plugin>
+
+                <!-- JaCoCo плагин для покрытия -->
                 <plugin>
                     <groupId>org.jacoco</groupId>
                     <artifactId>jacoco-maven-plugin</artifactId>
                     <version>${jacoco.version}</version>
                 </plugin>
+
+                <!-- Flyway плагин для миграций -->
+                <plugin>
+                    <groupId>org.flywaydb</groupId>
+                    <artifactId>flyway-maven-plugin</artifactId>
+                    <version>${flyway-maven-plugin.version}</version>
+                </plugin>
+
             </plugins>
         </pluginManagement>
     </build>
 
+    <!-- ============================================================
+         ПРОФИЛИ СБОРКИ
+         ============================================================ -->
     <profiles>
         <profile>
             <id>dev</id>
@@ -316,12 +617,14 @@
                 <spring.profiles.active>dev</spring.profiles.active>
             </properties>
         </profile>
+
         <profile>
             <id>docker</id>
             <properties>
                 <spring.profiles.active>docker</spring.profiles.active>
             </properties>
         </profile>
+
         <profile>
             <id>coverage</id>
             <build>
@@ -348,5 +651,17 @@
                 </plugins>
             </build>
         </profile>
+
+        <profile>
+            <id>ansi-colors</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <properties>
+                <spring.output.ansi.enabled>ALWAYS</spring.output.ansi.enabled>
+                <jansi.enabled>true</jansi.enabled>
+            </properties>
+        </profile>
     </profiles>
+
 </project>

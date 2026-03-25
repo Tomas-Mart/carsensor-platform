@@ -14,14 +14,6 @@
     <artifactId>common-dto</artifactId>
     <packaging>jar</packaging>
 
-    <properties>
-        <!-- Версии зависимостей -->
-        <assertj.version>3.26.3</assertj.version>
-        <hibernate-validator.version>9.1.0.Final</hibernate-validator.version>
-        <jakarta-el.version>4.0.2</jakarta-el.version>
-        <springdoc.version>2.5.0</springdoc.version>
-    </properties>
-
     <dependencies>
         <!-- Spring Boot Validation - для валидации DTO -->
         <dependency>
@@ -41,7 +33,7 @@
             <artifactId>jackson-annotations</artifactId>
         </dependency>
 
-        <!-- Jackson Databind - для работы с JSON (нужен в compile scope) -->
+        <!-- Jackson Databind - для работы с JSON -->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
@@ -58,22 +50,31 @@
         <dependency>
             <groupId>org.springdoc</groupId>
             <artifactId>springdoc-openapi-starter-common</artifactId>
-            <version>${springdoc.version}</version>
         </dependency>
 
-        <!-- =========================================== -->
-        <!-- ЯВНОЕ ДОБАВЛЕНИЕ Jakarta Validation API     -->
-        <!-- =========================================== -->
+        <!-- Jakarta Validation API -->
         <dependency>
             <groupId>jakarta.validation</groupId>
             <artifactId>jakarta.validation-api</artifactId>
-            <version>3.0.2</version>
-            <scope>compile</scope>
         </dependency>
 
         <!-- =========================================== -->
         <!-- ТЕСТОВЫЕ ЗАВИСИМОСТИ                        -->
         <!-- =========================================== -->
+
+        <!-- Hibernate Validator - реализация для тестов -->
+        <dependency>
+            <groupId>org.hibernate.validator</groupId>
+            <artifactId>hibernate-validator</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Jakarta EL - требуется для Hibernate Validator -->
+        <dependency>
+            <groupId>org.glassfish</groupId>
+            <artifactId>jakarta.el</artifactId>
+            <scope>test</scope>
+        </dependency>
 
         <!-- JUnit 5 для тестов -->
         <dependency>
@@ -86,23 +87,6 @@
         <dependency>
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
-            <version>${assertj.version}</version>
-            <scope>test</scope>
-        </dependency>
-
-        <!-- Hibernate Validator - реализация для тестов -->
-        <dependency>
-            <groupId>org.hibernate.validator</groupId>
-            <artifactId>hibernate-validator</artifactId>
-            <version>${hibernate-validator.version}</version>
-            <scope>test</scope>
-        </dependency>
-
-        <!-- Jakarta EL - требуется для Hibernate Validator -->
-        <dependency>
-            <groupId>org.glassfish</groupId>
-            <artifactId>jakarta.el</artifactId>
-            <version>${jakarta-el.version}</version>
             <scope>test</scope>
         </dependency>
 
@@ -110,11 +94,6 @@
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.mockito</groupId>
-            <artifactId>mockito-junit-jupiter</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -125,8 +104,6 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
-                    <source>21</source>
-                    <target>21</target>
                     <annotationProcessorPaths>
                         <path>
                             <groupId>org.projectlombok</groupId>

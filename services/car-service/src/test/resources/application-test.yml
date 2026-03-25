@@ -1,25 +1,58 @@
 spring:
   datasource:
-    url: jdbc:tc:postgresql:16-alpine:///testdb
-    driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
+    url: jdbc:postgresql://localhost:5432/postgres
+    driver-class-name: org.postgresql.Driver
+    username: postgres
+    password: postgres
+    hikari:
+      auto-commit: true
+      connection-timeout: 30000
+      maximum-pool-size: 10
+      minimum-idle: 5
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      leak-detection-threshold: 60000
+      validation-timeout: 5000
+      connection-test-query: SELECT 1
+      register-mbeans: false
+
   jpa:
+    open-in-view: false
     hibernate:
       ddl-auto: create-drop
     show-sql: true
     properties:
       hibernate:
         format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        connection:
+          autocommit: true
+          provider_disables_autocommit: false
+        jdbc:
+          batch_size: 20
+          fetch_size: 100
+        query:
+          plan_cache_max_size: 64
+        cache:
+          use_second_level_cache: false
+          use_query_cache: false
+        jakarta:
+          persistence:
+            query:
+              timeout: 60000
+
   flyway:
     enabled: false
 
-app:
-  jwt:
-    secret: mySecretKeyForJWTTokenGenerationThatMustBeAtLeast512BitsLongInProductionEnvironment2026
-    access-token-expiration: 900
-    refresh-token-expiration: 604800
+  sql:
+    init:
+      mode: never
 
 logging:
   level:
     com.carsensor: DEBUG
     org.hibernate.SQL: DEBUG
-    org.testcontainers: INFO
+    org.hibernate.engine.transaction: DEBUG
+    org.springframework.transaction: INFO
+    org.springframework.jdbc.datasource.init: DEBUG
+    io.zonky.test.db.postgres: WARN

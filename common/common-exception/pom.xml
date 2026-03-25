@@ -40,13 +40,14 @@
             <artifactId>jakarta.validation-api</artifactId>
         </dependency>
 
-        <!-- Тестовые зависимости - ТОЛЬКО spring-boot-starter-test (включает всё необходимое) -->
+        <!-- Тестовые зависимости -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>
+
     <build>
         <plugins>
             <plugin>

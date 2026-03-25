@@ -1,4 +1,4 @@
-package com.carsensor.scheduler.unit;
+package com.carsensor.scheduler.unit.parser;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Element;

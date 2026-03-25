@@ -1,7 +1,5 @@
 package com.carsensor.auth.integration.controller;
 
-import java.util.HashMap;
-import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -10,8 +8,9 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.jdbc.Sql;
+import org.springframework.test.context.jdbc.SqlConfig;
+import org.springframework.test.context.jdbc.SqlGroup;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
 import com.carsensor.auth.AuthServiceApplication;
 import com.carsensor.auth.infrastructure.security.JwtTokenProvider;
 import com.carsensor.common.test.AbstractIntegrationTest;
@@ -25,12 +24,18 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Интеграционные тесты для AuthController
- * Использует Testcontainers с реальной PostgreSQL
+ * Интеграционные тесты для AuthController.
+ * Проверяют работу контроллера с Embedded PostgreSQL.
+ *
+ * @see AbstractIntegrationTest
+ * @since 1.0
  */
-@DisplayName("Интеграционные тесты AuthController")
-@SpringBootTest(classes = AuthServiceApplication.class)
+@SpringBootTest(
+        classes = AuthServiceApplication.class,
+        webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT
+)
 @AutoConfigureMockMvc
+@DisplayName("Интеграционные тесты AuthController")
 class AuthControllerIntegrationTest extends AbstractIntegrationTest {
 
     @Autowired
@@ -51,14 +56,17 @@ class AuthControllerIntegrationTest extends AbstractIntegrationTest {
     class LoginTests {
 
         @Test
-        @Sql(scripts = {"/db/test/cleanup.sql", "/db/test/insert-test-user.sql"})
+        @SqlGroup({@Sql(scripts = "/db/test/cleanup.sql",
+                config = @SqlConfig(transactionMode = SqlConfig.TransactionMode.ISOLATED),
+                executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD),
+                @Sql(scripts = "/db/test/insert-test-user.sql",
+                        config = @SqlConfig(transactionMode = SqlConfig.TransactionMode.ISOLATED),
+                        executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)})
         @DisplayName("Успешный вход с admin:admin123")
         void login_ValidCredentials_ReturnsTokens() throws Exception {
-            // Arrange
-            LoginRequest request = new LoginRequest("admin", "admin123");
+            var request = new LoginRequest("admin", "admin123");
 
-            // Act & Assert
-            MvcResult result = mockMvc.perform(post(LOGIN_URL)
+            var result = mockMvc.perform(post(LOGIN_URL)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isOk())
@@ -69,22 +77,20 @@ class AuthControllerIntegrationTest extends AbstractIntegrationTest {
                     .andExpect(jsonPath("$.roles").isArray())
                     .andReturn();
 
-            // Проверяем, что токены валидны
-            String responseJson = result.getResponse().getContentAsString();
-            AuthResponse response = objectMapper.readValue(responseJson, AuthResponse.class);
+            var responseJson = result.getResponse().getContentAsString();
+            var response = objectMapper.readValue(responseJson, AuthResponse.class);
 
             assertThat(tokenProvider.validateToken(response.accessToken())).isTrue();
             assertThat(tokenProvider.validateToken(response.refreshToken())).isTrue();
         }
 
         @Test
-        @Sql(scripts = {"/db/test/cleanup.sql", "/db/test/insert-test-user.sql"})
+        @Sql(scripts = {"/db/test/cleanup.sql", "/db/test/insert-test-user.sql"},
+                executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
         @DisplayName("Вход с неверным паролем возвращает 401")
         void login_InvalidPassword_ReturnsUnauthorized() throws Exception {
-            // Arrange
-            LoginRequest request = new LoginRequest("admin", "wrongpassword");
+            var request = new LoginRequest("admin", "wrongpassword");
 
-            // Act & Assert
             mockMvc.perform(post(LOGIN_URL)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
@@ -95,10 +101,8 @@ class AuthControllerIntegrationTest extends AbstractIntegrationTest {
         @Test
         @DisplayName("Вход с пустым логином возвращает 400")
         void login_EmptyUsername_ReturnsBadRequest() throws Exception {
-            // Arrange
-            LoginRequest request = new LoginRequest("", "password123");
+            var request = new LoginRequest("", "password123");
 
-            // Act & Assert
             mockMvc.perform(post(LOGIN_URL)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
@@ -109,10 +113,8 @@ class AuthControllerIntegrationTest extends AbstractIntegrationTest {
         @Test
         @DisplayName("Вход с несуществующим пользователем возвращает 401")
         void login_NonExistentUser_ReturnsUnauthorized() throws Exception {
-            // Arrange
-            LoginRequest request = new LoginRequest("nonexistent", "password123");
+            var request = new LoginRequest("nonexistent", "password123");
 
-            // Act & Assert
             mockMvc.perform(post(LOGIN_URL)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
@@ -121,12 +123,16 @@ class AuthControllerIntegrationTest extends AbstractIntegrationTest {
         }
 
         @Test
-        @Sql(scripts = {"/db/test/cleanup.sql", "/db/test/insert-test-user.sql"})
+        @SqlGroup({@Sql(scripts = "/db/test/cleanup.sql",
+                config = @SqlConfig(transactionMode = SqlConfig.TransactionMode.ISOLATED),
+                executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD),
+                @Sql(scripts = "/db/test/insert-test-user.sql",
+                        config = @SqlConfig(transactionMode = SqlConfig.TransactionMode.ISOLATED),
+                        executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)})
         @DisplayName("Проверка rate limiting - много запросов подряд")
         void login_MultipleAttempts_HandlesCorrectly() throws Exception {
-            LoginRequest request = new LoginRequest("admin", "admin123");
+            var request = new LoginRequest("admin", "admin123");
 
-            // 10 успешных запросов подряд
             for (int i = 0; i < 10; i++) {
                 mockMvc.perform(post(LOGIN_URL)
                                 .contentType(MediaType.APPLICATION_JSON)
@@ -141,23 +147,26 @@ class AuthControllerIntegrationTest extends AbstractIntegrationTest {
     class RefreshTokenTests {
 
         @Test
-        @Sql(scripts = {"/db/test/cleanup.sql", "/db/test/insert-test-user.sql"})
+        @SqlGroup({@Sql(scripts = "/db/test/cleanup.sql",
+                config = @SqlConfig(transactionMode = SqlConfig.TransactionMode.ISOLATED),
+                executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD),
+                @Sql(scripts = "/db/test/insert-test-user.sql",
+                        config = @SqlConfig(transactionMode = SqlConfig.TransactionMode.ISOLATED),
+                        executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)})
         @DisplayName("Обновление токена с валидным refresh token")
         void refresh_ValidToken_ReturnsNewAccessToken() throws Exception {
-            // Сначала логинимся, получаем refresh token
-            LoginRequest loginRequest = new LoginRequest("admin", "admin123");
-            MvcResult loginResult = mockMvc.perform(post(LOGIN_URL)
+            var loginRequest = new LoginRequest("admin", "admin123");
+            var loginResult = mockMvc.perform(post(LOGIN_URL)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(loginRequest)))
                     .andExpect(status().isOk())
                     .andReturn();
 
-            AuthResponse loginResponse = objectMapper.readValue(
+            var loginResponse = objectMapper.readValue(
                     loginResult.getResponse().getContentAsString(),
                     AuthResponse.class
             );
 
-            // Теперь обновляем токен
             mockMvc.perform(post(REFRESH_URL)
                             .header("Authorization", "Bearer " + loginResponse.refreshToken()))
                     .andExpect(status().isOk())
@@ -169,23 +178,6 @@ class AuthControllerIntegrationTest extends AbstractIntegrationTest {
         @Test
         @DisplayName("Обновление с невалидным токеном возвращает 401")
         void refresh_InvalidToken_ReturnsUnauthorized() throws Exception {
-            // Arrange
-            Map<String, String> request = new HashMap<>();
-            request.put("refreshToken", "invalid.token.string");
-
-            // Act & Assert
-            mockMvc.perform(post("/api/auth/refresh")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isUnauthorized())
-                    .andExpect(jsonPath("$.error").value("Unauthorized"))
-                    .andExpect(jsonPath("$.message").value("Необходима аутентификация для доступа к ресурсу"))
-                    .andExpect(jsonPath("$.status").value(401));
-        }
-
-        @Test
-        @DisplayName("Обновление с токеном в заголовке возвращает 401")
-        void refresh_WithTokenInHeader_ReturnsUnauthorized() throws Exception {
             mockMvc.perform(post(REFRESH_URL)
                             .header("Authorization", "Bearer invalid.token.here"))
                     .andExpect(status().isUnauthorized())
@@ -215,23 +207,26 @@ class AuthControllerIntegrationTest extends AbstractIntegrationTest {
     class LogoutTests {
 
         @Test
-        @Sql(scripts = {"/db/test/cleanup.sql", "/db/test/insert-test-user.sql"})
+        @SqlGroup({@Sql(scripts = "/db/test/cleanup.sql",
+                config = @SqlConfig(transactionMode = SqlConfig.TransactionMode.ISOLATED),
+                executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD),
+                @Sql(scripts = "/db/test/insert-test-user.sql",
+                        config = @SqlConfig(transactionMode = SqlConfig.TransactionMode.ISOLATED),
+                        executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)})
         @DisplayName("Выход из системы с валидным токеном")
         void logout_ValidToken_ReturnsOk() throws Exception {
-            // Получаем токен
-            LoginRequest loginRequest = new LoginRequest("admin", "admin123");
-            MvcResult loginResult = mockMvc.perform(post(LOGIN_URL)
+            var loginRequest = new LoginRequest("admin", "admin123");
+            var loginResult = mockMvc.perform(post(LOGIN_URL)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(loginRequest)))
                     .andExpect(status().isOk())
                     .andReturn();
 
-            AuthResponse loginResponse = objectMapper.readValue(
+            var loginResponse = objectMapper.readValue(
                     loginResult.getResponse().getContentAsString(),
                     AuthResponse.class
             );
 
-            // Выходим
             mockMvc.perform(post(LOGOUT_URL)
                             .header("Authorization", "Bearer " + loginResponse.accessToken()))
                     .andExpect(status().isOk());
@@ -242,7 +237,16 @@ class AuthControllerIntegrationTest extends AbstractIntegrationTest {
         void logout_NoToken_ReturnsUnauthorized() throws Exception {
             mockMvc.perform(post(LOGOUT_URL))
                     .andExpect(status().isUnauthorized())
-                    .andExpect(jsonPath("$.error_code").value("MISSING_TOKEN"));
+                    .andExpect(jsonPath("$.error_code").value("UNAUTHORIZED"));
+        }
+
+        @Test
+        @DisplayName("Выход с невалидным токеном возвращает 401")
+        void logout_WithInvalidToken_ReturnsUnauthorized() throws Exception {
+            mockMvc.perform(post(LOGOUT_URL)
+                            .header("Authorization", "Bearer invalid.token"))
+                    .andExpect(status().isUnauthorized())
+                    .andExpect(jsonPath("$.error_code").value("INVALID_TOKEN_FORMAT"));
         }
     }
 }

@@ -1,8 +1,26 @@
 package com.carsensor.car.interfaces.rest;
 
+import java.math.BigDecimal;
+import java.net.URI;
+import java.util.Map;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import com.carsensor.car.application.service.CarService;
 import com.carsensor.platform.dto.CarDto;
 import com.carsensor.platform.dto.PageResponse;
-import com.carsensor.car.application.service.CarService;
+import com.carsensor.platform.exception.PlatformException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -11,17 +29,13 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.*;
 
-import java.math.BigDecimal;
-import java.net.URI;
-import java.util.Map;
-
+/**
+ * REST контроллер для управления автомобилями.
+ *
+ * <p>Предоставляет API для CRUD операций, поиска, фильтрации,
+ * экспорта/импорта данных и получения статистики.
+ */
 @RestController
 @RequestMapping("/api/v1/cars")
 @RequiredArgsConstructor
@@ -65,6 +79,30 @@ public class CarController {
         return ResponseEntity.ok(response);
     }
 
+    @GetMapping("/search")
+    @Operation(summary = "Поиск автомобиля по марке и модели",
+            description = "Возвращает автомобиль по указанной марке и модели")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Автомобиль найден"),
+            @ApiResponse(responseCode = "404", description = "Автомобиль не найден")
+    })
+    public ResponseEntity<CarDto> searchCar(
+            @Parameter(description = "Марка автомобиля", required = true)
+            @RequestParam String brand,
+            @Parameter(description = "Модель автомобиля", required = true)
+            @RequestParam String model) {
+
+        log.debug("GET /api/v1/cars/search?brand={}&model={}", brand, model);
+
+        try {
+            CarDto car = carService.getCarByBrandAndModel(brand, model);
+            return ResponseEntity.ok(car);
+        } catch (PlatformException.CarNotFoundException e) {
+            log.warn("Car not found: {} {}", brand, model);
+            throw e;
+        }
+    }
+
     @GetMapping("/{id}")
     @Operation(summary = "Получить автомобиль по ID")
     @ApiResponses(value = {
@@ -81,6 +119,11 @@ public class CarController {
     @PostMapping
     @PreAuthorize("hasAuthority('CAR_CREATE')")
     @Operation(summary = "Создать новый автомобиль", description = "Доступно только администраторам")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "201", description = "Автомобиль создан"),
+            @ApiResponse(responseCode = "400", description = "Неверные данные"),
+            @ApiResponse(responseCode = "403", description = "Доступ запрещен")
+    })
     public ResponseEntity<CarDto> createCar(@Valid @RequestBody CarDto carDto) {
         log.info("POST /api/v1/cars - creating car: {} {}", carDto.brand(), carDto.model());
         CarDto created = carService.createCar(carDto);
@@ -92,6 +135,11 @@ public class CarController {
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('CAR_EDIT')")
     @Operation(summary = "Обновить автомобиль", description = "Доступно только администраторам")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Автомобиль обновлен"),
+            @ApiResponse(responseCode = "404", description = "Автомобиль не найден"),
+            @ApiResponse(responseCode = "403", description = "Доступ запрещен")
+    })
     public ResponseEntity<CarDto> updateCar(
             @PathVariable Long id, @Valid @RequestBody CarDto carDto) {
         log.info("PUT /api/v1/cars/{} - updating car", id);
@@ -102,6 +150,11 @@ public class CarController {
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('CAR_DELETE')")
     @Operation(summary = "Удалить автомобиль", description = "Доступно только администраторам")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "204", description = "Автомобиль удален"),
+            @ApiResponse(responseCode = "404", description = "Автомобиль не найден"),
+            @ApiResponse(responseCode = "403", description = "Доступ запрещен")
+    })
     public ResponseEntity<Void> deleteCar(@PathVariable Long id) {
         log.info("DELETE /api/v1/cars/{} - deleting car", id);
         carService.deleteCar(id);
@@ -110,10 +163,18 @@ public class CarController {
 
     @GetMapping("/filters")
     @Operation(summary = "Получить доступные опции для фильтров")
+    @ApiResponse(responseCode = "200", description = "Опции фильтров получены")
     public ResponseEntity<Map<String, Object>> getFilterOptions() {
+        log.debug("GET /api/v1/cars/filters");
         return ResponseEntity.ok(carService.getFilterOptions());
     }
 
+    /**
+     * Преобразует параметры сортировки в объект Sort.
+     *
+     * @param sort массив параметров [поле, направление]
+     * @return объект Sort
+     */
     private Sort parseSort(String[] sort) {
         if (sort.length == 0) {
             return Sort.by(Sort.Direction.DESC, "createdAt");

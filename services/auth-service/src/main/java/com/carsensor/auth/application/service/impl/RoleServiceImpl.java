@@ -19,9 +19,9 @@ import lombok.extern.slf4j.Slf4j;
 /**
  * Реализация сервиса для работы с ролями
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
-@Slf4j
 @Transactional(readOnly = true)
 public class RoleServiceImpl implements RoleService {
 

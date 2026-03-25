@@ -3,6 +3,7 @@ package com.carsensor.common.test.util;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.concurrent.TimeUnit;
 import org.springframework.test.util.ReflectionTestUtils;
 
 /**
@@ -128,5 +129,49 @@ public final class TestUtils {
             sb.append(ch);
         }
         return sb.toString();
+    }
+
+    /**
+     * Ожидание с игнорированием InterruptedException
+     * Полезно для тестов, где нужно подождать асинхронные операции
+     *
+     * @param millis время ожидания в миллисекундах
+     */
+    public static void sleepUninterruptibly(long millis) {
+        try {
+            Thread.sleep(millis);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    /**
+     * Ожидание с игнорированием InterruptedException
+     *
+     * @param timeout время ожидания
+     * @param unit    единица измерения времени
+     */
+    public static void sleepUninterruptibly(long timeout, TimeUnit unit) {
+        sleepUninterruptibly(unit.toMillis(timeout));
+    }
+
+    /**
+     * Проверка, что строка не null и не пуста
+     *
+     * @param str проверяемая строка
+     * @return true если строка не null и не пуста
+     */
+    public static boolean isNotBlank(String str) {
+        return str != null && !str.trim().isEmpty();
+    }
+
+    /**
+     * Проверка, что строка null или пуста
+     *
+     * @param str проверяемая строка
+     * @return true если строка null или пуста
+     */
+    public static boolean isBlank(String str) {
+        return str == null || str.trim().isEmpty();
     }
 }

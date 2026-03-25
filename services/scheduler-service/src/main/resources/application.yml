@@ -103,8 +103,11 @@ spring:
     activate:
       on-profile: test
   datasource:
-    url: jdbc:tc:postgresql:16-alpine:///testdb
-    driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
+    # Исправлено: вместо Testcontainers используем embedded-postgres
+    url: jdbc:postgresql://localhost:5432/testdb
+    driver-class-name: org.postgresql.Driver
+    username: postgres
+    password: postgres
   jpa:
     hibernate:
       ddl-auto: create-drop
@@ -124,6 +127,6 @@ app:
 logging:
   level:
     com.carsensor: DEBUG
-    org.testcontainers: INFO
+    io.zonky.test.db.postgres: INFO
     org.springframework.beans.factory: DEBUG
     org.springframework.context: DEBUG

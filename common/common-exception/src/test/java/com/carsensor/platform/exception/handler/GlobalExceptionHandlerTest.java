@@ -1,7 +1,9 @@
-package com.carsensor.common.exception.handler;
+package com.carsensor.platform.exception.handler;
 
-import com.carsensor.platform.exception.PlatformException;
-import com.carsensor.platform.exception.handler.GlobalExceptionHandler;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -15,9 +17,7 @@ import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.context.request.WebRequest;
-
-import java.util.List;
-import java.util.Map;
+import com.carsensor.platform.exception.PlatformException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -53,7 +53,7 @@ class GlobalExceptionHandlerTest {
         assertThat(problemDetail.getStatus()).isEqualTo(HttpStatus.NOT_FOUND.value());
         assertThat(problemDetail.getDetail()).isEqualTo("Автомобиль с идентификатором 123 не найден");
         assertThat(problemDetail.getProperties()).containsKey("error_code");
-        assertThat(problemDetail.getProperties().get("error_code")).isEqualTo("CAR_NOT_FOUND");
+        assertThat(Objects.requireNonNull(Objects.requireNonNull(problemDetail.getProperties())).get("error_code")).isEqualTo("CAR_NOT_FOUND");
     }
 
     @Test
@@ -68,7 +68,7 @@ class GlobalExceptionHandlerTest {
         // Assert
         assertThat(problemDetail.getStatus()).isEqualTo(HttpStatus.UNAUTHORIZED.value());
         assertThat(problemDetail.getDetail()).isEqualTo("Неверный логин или пароль");
-        assertThat(problemDetail.getProperties().get("error_code")).isEqualTo("INVALID_CREDENTIALS");
+        assertThat(Objects.requireNonNull(problemDetail.getProperties()).get("error_code")).isEqualTo("INVALID_CREDENTIALS");
     }
 
     @Test
@@ -83,7 +83,7 @@ class GlobalExceptionHandlerTest {
         // Assert
         assertThat(problemDetail.getStatus()).isEqualTo(HttpStatus.FORBIDDEN.value());
         assertThat(problemDetail.getDetail()).isEqualTo("У вас нет прав для выполнения этого действия");
-        assertThat(problemDetail.getProperties().get("error_code")).isEqualTo("ACCESS_DENIED");
+        assertThat(Objects.requireNonNull(problemDetail.getProperties()).get("error_code")).isEqualTo("ACCESS_DENIED");
     }
 
     @Test
@@ -98,7 +98,7 @@ class GlobalExceptionHandlerTest {
         // Assert
         assertThat(problemDetail.getStatus()).isEqualTo(HttpStatus.UNAUTHORIZED.value());
         assertThat(problemDetail.getDetail()).isEqualTo("Неверный логин или пароль");
-        assertThat(problemDetail.getProperties().get("error_code")).isEqualTo("INVALID_CREDENTIALS");
+        assertThat(Objects.requireNonNull(problemDetail.getProperties()).get("error_code")).isEqualTo("INVALID_CREDENTIALS");
     }
 
     @Test
@@ -108,11 +108,15 @@ class GlobalExceptionHandlerTest {
         MethodArgumentNotValidException exception = mock(MethodArgumentNotValidException.class);
         BindingResult bindingResult = mock(BindingResult.class);
 
-        when(exception.getBindingResult()).thenReturn(bindingResult);
-        when(bindingResult.getAllErrors()).thenReturn(List.of(
+        List<FieldError> fieldErrors = List.of(
                 new FieldError("car", "brand", "Марка обязательна"),
                 new FieldError("car", "price", "Цена должна быть положительной")
-        ));
+        );
+
+        when(exception.getBindingResult()).thenReturn(bindingResult);
+        when(bindingResult.getAllErrors()).thenReturn(fieldErrors.stream()
+                .map(error -> (org.springframework.validation.ObjectError) error)
+                .collect(Collectors.toList()));
 
         // Act
         ProblemDetail problemDetail = exceptionHandler.handleValidationExceptions(exception);
@@ -121,9 +125,14 @@ class GlobalExceptionHandlerTest {
         assertThat(problemDetail.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST.value());
         assertThat(problemDetail.getDetail()).isEqualTo("Ошибка валидации входных данных");
 
-        Map<String, String> fieldErrors = (Map<String, String>) problemDetail.getProperties().get("field_errors");
-        assertThat(fieldErrors).containsEntry("brand", "Марка обязательна");
-        assertThat(fieldErrors).containsEntry("price", "Цена должна быть положительной");
+        Object fieldErrorsObj = Objects.requireNonNull(problemDetail.getProperties()).get("field_errors");
+        assertThat(fieldErrorsObj).isInstanceOf(Map.class);
+
+        @SuppressWarnings("unchecked")
+        Map<String, String> fieldErrorsMap = (Map<String, String>) Objects.requireNonNull(fieldErrorsObj);
+
+        assertThat(fieldErrorsMap).containsEntry("brand", "Марка обязательна");
+        assertThat(fieldErrorsMap).containsEntry("price", "Цена должна быть положительной");
     }
 
     @Test
@@ -138,6 +147,6 @@ class GlobalExceptionHandlerTest {
         // Assert
         assertThat(problemDetail.getStatus()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR.value());
         assertThat(problemDetail.getDetail()).isEqualTo("Внутренняя ошибка сервера");
-        assertThat(problemDetail.getProperties().get("error_code")).isEqualTo("INTERNAL_ERROR");
+        assertThat(Objects.requireNonNull(problemDetail.getProperties()).get("error_code")).isEqualTo("INTERNAL_ERROR");
     }
 }

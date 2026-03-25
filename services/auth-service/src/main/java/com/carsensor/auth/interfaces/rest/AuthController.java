@@ -2,6 +2,8 @@ package com.carsensor.auth.interfaces.rest;
 
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -11,6 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.carsensor.auth.application.service.AuthenticationService;
 import com.carsensor.platform.dto.AuthResponse;
 import com.carsensor.platform.dto.LoginRequest;
+import com.carsensor.platform.dto.UserDto;
 import com.carsensor.platform.exception.PlatformException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -46,16 +49,14 @@ public class AuthController {
     @Operation(summary = "Обновление токена", description = "Получение нового access token по refresh token")
     public ResponseEntity<AuthResponse> refresh(
             @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authHeader,
-            HttpServletRequest request) {  // <- добавляем HttpServletRequest
+            HttpServletRequest request) {
         log.debug("Запрос на обновление токена");
 
-        // Проверка на отсутствие заголовка с логированием IP
         if (authHeader == null) {
             log.warn("Запрос на /refresh без заголовка авторизации от IP: {}", request.getRemoteAddr());
             throw new PlatformException.MissingTokenException("Отсутствует заголовок авторизации");
         }
 
-        // Проверка формата заголовка
         if (!authHeader.startsWith("Bearer ")) {
             log.warn("Неверный формат заголовка авторизации от IP: {}", request.getRemoteAddr());
             throw new PlatformException.InvalidTokenFormatException("Неверный формат заголовка авторизации. Должен начинаться с 'Bearer '");
@@ -70,7 +71,7 @@ public class AuthController {
     @Operation(summary = "Выход из системы")
     public ResponseEntity<Void> logout(
             @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String authHeader,
-            HttpServletRequest request) {  // <- и здесь тоже
+            HttpServletRequest request) {
         log.debug("Запрос на выход из системы");
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
@@ -84,8 +85,17 @@ public class AuthController {
 
     @GetMapping("/me")
     @Operation(summary = "Информация о текущем пользователе")
-    public ResponseEntity<AuthenticationService.CurrentUser> getCurrentUser() {
-        AuthenticationService.CurrentUser currentUser = authenticationService.getCurrentUser();
+    public ResponseEntity<UserDto> getCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null ||
+                !authentication.isAuthenticated() ||
+                "anonymousUser".equals(authentication.getPrincipal())) {
+            log.warn("Unauthorized access to /me endpoint");
+            throw new PlatformException.UnauthorizedException("Необходима аутентификация для доступа к ресурсу");
+        }
+
+        UserDto currentUser = authenticationService.getCurrentUser();
         return ResponseEntity.ok(currentUser);
     }
 

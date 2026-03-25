@@ -1,13 +1,11 @@
-package com.carsensor.scheduler.integration.scheduler;
+package com.carsensor.scheduler.integration;
 
-import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
-import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -15,41 +13,54 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.util.ReflectionTestUtils;
 import com.carsensor.common.test.AbstractIntegrationTest;
 import com.carsensor.platform.dto.CarDto;
+import com.carsensor.scheduler.SchedulerApplication;
 import com.carsensor.scheduler.application.service.ParseService;
 import com.carsensor.scheduler.domain.parser.CarSensorParser;
 import com.carsensor.scheduler.infrastructure.client.CarServiceClient;
-import okhttp3.mockwebserver.MockResponse;
-import okhttp3.mockwebserver.MockWebServer;
-import okhttp3.mockwebserver.RecordedRequest;
+import com.github.tomakehurst.wiremock.WireMockServer;
+import com.github.tomakehurst.wiremock.client.WireMock;
 
+import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
+import static com.github.tomakehurst.wiremock.client.WireMock.matchingJsonPath;
+import static com.github.tomakehurst.wiremock.client.WireMock.post;
+import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
+import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
+import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.when;
 
+@SpringBootTest(classes = SchedulerApplication.class)
+@ActiveProfiles("test")
 @DisplayName("Интеграционные тесты ParseSchedulerService")
 class ParseServiceIntegrationTest extends AbstractIntegrationTest {
 
     @Autowired
     private ParseService parseService;
 
-    @MockitoBean  // Новая аннотация для Spring Boot 3.4+
+    @org.springframework.test.context.bean.override.mockito.MockitoBean
     private CarSensorParser carSensorParser;
 
     @Autowired
     private CarServiceClient carServiceClient;
 
-    private MockWebServer mockWebServer;
+    private WireMockServer wireMockServer;
     private Thread parsingThread;
 
     @BeforeEach
-    void setUp() throws IOException {
-        // Сбрасываем состояние перед каждым тестом
+    void setUp() {
+        assertThat(parseService).isNotNull();
+        assertThat(carServiceClient).isNotNull();
+
+        // Сбрасываем состояние
         ReflectionTestUtils.setField(parseService, "parsingInProgress", new AtomicBoolean(false));
         ReflectionTestUtils.setField(parseService, "parseHistory", new ConcurrentLinkedQueue<>());
         ReflectionTestUtils.setField(parseService, "currentStatus",
@@ -57,17 +68,18 @@ class ParseServiceIntegrationTest extends AbstractIntegrationTest {
                         new ParseService.ParseStatus(false, null, null, 0, 0, 0, null, ParseService.ParseState.IDLE)
                 ));
 
-        // Настраиваем MockWebServer на случайный свободный порт
-        mockWebServer = new MockWebServer();
-        mockWebServer.start();
+        // Настраиваем WireMock
+        wireMockServer = new WireMockServer(wireMockConfig().dynamicPort());
+        wireMockServer.start();
+        WireMock.configureFor(wireMockServer.port());
 
-        // Перенаправляем CarServiceClient на MockWebServer
+        // Перенаправляем клиент на WireMock
         ReflectionTestUtils.setField(carServiceClient, "carServiceUrl",
-                "http://localhost:" + mockWebServer.getPort());
+                "http://localhost:" + wireMockServer.port());
     }
 
     @AfterEach
-    void tearDown() throws IOException {
+    void tearDown() {
         if (parsingThread != null && parsingThread.isAlive()) {
             parsingThread.interrupt();
             try {
@@ -76,14 +88,9 @@ class ParseServiceIntegrationTest extends AbstractIntegrationTest {
                 Thread.currentThread().interrupt();
             }
         }
-        mockWebServer.shutdown();
-    }
-
-    private MockResponse createSuccessResponse(String body) {
-        return new MockResponse()
-                .setResponseCode(200)
-                .setHeader("Content-Type", "application/json")
-                .setBody(body);
+        if (wireMockServer != null) {
+            wireMockServer.stop();
+        }
     }
 
     @Nested
@@ -93,17 +100,12 @@ class ParseServiceIntegrationTest extends AbstractIntegrationTest {
 
         @BeforeEach
         void setUp() {
-            mockWebServer.setDispatcher(new okhttp3.mockwebserver.Dispatcher() {
-                @Override
-                public @NotNull MockResponse dispatch(@NotNull RecordedRequest request) {
-                    assert request.getPath() != null;
-                    if (request.getPath().equals("/api/v1/cars/batch")) {
-                        return createSuccessResponse("[{\"id\":1,\"brand\":\"Toyota\",\"model\":\"Camry\"}," +
-                                "{\"id\":2,\"brand\":\"Honda\",\"model\":\"Civic\"}]");
-                    }
-                    return new MockResponse().setResponseCode(404);
-                }
-            });
+            wireMockServer.stubFor(post(urlEqualTo("/api/v1/cars/batch"))
+                    .willReturn(aResponse()
+                            .withStatus(200)
+                            .withHeader("Content-Type", "application/json")
+                            .withBody("[{\"id\":1,\"brand\":\"Toyota\",\"model\":\"Camry\"}," +
+                                    "{\"id\":2,\"brand\":\"Honda\",\"model\":\"Civic\"}]")));
         }
 
         @Test
@@ -132,6 +134,7 @@ class ParseServiceIntegrationTest extends AbstractIntegrationTest {
 
             assertThat(result).hasSize(2);
             assertThat(result).extracting(CarDto::brand).containsExactly("Toyota", "Honda");
+            wireMockServer.verify(1, postRequestedFor(urlEqualTo("/api/v1/cars/batch")));
         }
 
         @Test
@@ -143,6 +146,7 @@ class ParseServiceIntegrationTest extends AbstractIntegrationTest {
             List<CarDto> result = parseService.parseManually();
 
             assertThat(result).isEmpty();
+            wireMockServer.verify(1, postRequestedFor(urlEqualTo("/api/v1/cars/batch")));
         }
 
         @Test
@@ -157,7 +161,9 @@ class ParseServiceIntegrationTest extends AbstractIntegrationTest {
 
             ParseService.ParseStatus status = parseService.getLastParseStatus();
             assertThat(status.state()).isEqualTo(ParseService.ParseState.FAILED);
-            assertThat(status.lastError()).isNotEmpty();  // Исправлено: isPresent() -> isNotEmpty()
+            assertThat(status.lastError()).isNotEmpty();
+
+            wireMockServer.verify(0, postRequestedFor(urlEqualTo("/api/v1/cars/batch")));
         }
     }
 
@@ -195,7 +201,6 @@ class ParseServiceIntegrationTest extends AbstractIntegrationTest {
                 try {
                     parseService.parseManually();
                 } catch (Exception e) {
-                    // Ожидаемо при прерывании
                     Thread.currentThread().interrupt();
                 }
             });
@@ -215,16 +220,11 @@ class ParseServiceIntegrationTest extends AbstractIntegrationTest {
 
         @BeforeEach
         void setUp() {
-            mockWebServer.setDispatcher(new okhttp3.mockwebserver.Dispatcher() {
-                @Override
-                public @NotNull MockResponse dispatch(@NotNull RecordedRequest request) {
-                    assert request.getPath() != null;
-                    if (request.getPath().equals("/api/v1/cars/batch")) {
-                        return createSuccessResponse("[{\"id\":1,\"brand\":\"Toyota\",\"model\":\"Camry\"}]");
-                    }
-                    return new MockResponse().setResponseCode(404);
-                }
-            });
+            wireMockServer.stubFor(post(urlEqualTo("/api/v1/cars/batch"))
+                    .willReturn(aResponse()
+                            .withStatus(200)
+                            .withHeader("Content-Type", "application/json")
+                            .withBody("[{\"id\":1,\"brand\":\"Toyota\",\"model\":\"Camry\"}]")));
         }
 
         @Test
@@ -283,6 +283,15 @@ class ParseServiceIntegrationTest extends AbstractIntegrationTest {
     @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
     class StopParsingTests {
 
+        @BeforeEach
+        void setUp() {
+            wireMockServer.stubFor(post(urlEqualTo("/api/v1/cars/batch"))
+                    .willReturn(aResponse()
+                            .withStatus(200)
+                            .withHeader("Content-Type", "application/json")
+                            .withBody("[{\"id\":1,\"brand\":\"Toyota\",\"model\":\"Camry\"}]")));
+        }
+
         @Test
         @Timeout(5)
         @DisplayName("4.1 Остановка текущего парсинга")
@@ -323,7 +332,6 @@ class ParseServiceIntegrationTest extends AbstractIntegrationTest {
         @DisplayName("4.2 Остановка когда парсинг не запущен")
         void stopCurrentParsing_WhenNoParsingInProgress_ShouldDoNothing() {
             parseService.stopCurrentParsing();
-
             assertThat(parseService.isParsingInProgress()).isFalse();
         }
     }
@@ -335,16 +343,11 @@ class ParseServiceIntegrationTest extends AbstractIntegrationTest {
 
         @BeforeEach
         void setUp() {
-            mockWebServer.setDispatcher(new okhttp3.mockwebserver.Dispatcher() {
-                @Override
-                public @NotNull MockResponse dispatch(@NotNull RecordedRequest request) {
-                    assert request.getPath() != null;
-                    if (request.getPath().equals("/api/v1/cars/batch")) {
-                        return createSuccessResponse("[{\"id\":1,\"brand\":\"トヨタ\",\"model\":\"カローラ\"}]");
-                    }
-                    return new MockResponse().setResponseCode(404);
-                }
-            });
+            wireMockServer.stubFor(post(urlEqualTo("/api/v1/cars/batch"))
+                    .willReturn(aResponse()
+                            .withStatus(200)
+                            .withHeader("Content-Type", "application/json")
+                            .withBody("[{\"id\":1,\"brand\":\"トヨタ\",\"model\":\"カローラ\"}]")));
         }
 
         @Test
@@ -367,7 +370,69 @@ class ParseServiceIntegrationTest extends AbstractIntegrationTest {
 
             assertThat(result).hasSize(1);
             assertThat(result.getFirst().brand()).isEqualTo("トヨタ");
-            assertThat(result.getFirst().model()).isEqualTo("カローラ");  // Было brand(), теперь model()
+            assertThat(result.getFirst().model()).isEqualTo("カローラ");
+
+            wireMockServer.verify(1, postRequestedFor(urlEqualTo("/api/v1/cars/batch"))
+                    .withRequestBody(matchingJsonPath("$[0].brand", equalTo("トヨタ")))
+                    .withRequestBody(matchingJsonPath("$[0].model", equalTo("カローラ"))));
+        }
+    }
+
+    @Nested
+    @DisplayName("6. Тесты обработки ошибок car-service")
+    @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
+    class CarServiceErrorTests {
+
+        @Test
+        @Timeout(10)
+        @DisplayName("6.1 Ошибка 500 от car-service")
+        void parseManually_WhenCarServiceReturns500_ShouldHandleGracefully() {
+            wireMockServer.stubFor(post(urlEqualTo("/api/v1/cars/batch"))
+                    .willReturn(aResponse()
+                            .withStatus(500)
+                            .withBody("Internal Server Error")));
+
+            CarDto testCar = CarDto.builder()
+                    .brand("Toyota")
+                    .model("Camry")
+                    .year(2020)
+                    .mileage(50000)
+                    .price(new BigDecimal("2500000"))
+                    .build();
+
+            when(carSensorParser.parseCars(anyInt())).thenReturn(List.of(testCar));
+
+            List<CarDto> result = parseService.parseManually();
+
+            assertThat(result).isEmpty();
+
+            ParseService.ParseStatus status = parseService.getLastParseStatus();
+            assertThat(status.state()).isEqualTo(ParseService.ParseState.FAILED);
+        }
+
+        @Test
+        @Timeout(15)
+        @DisplayName("6.2 Таймаут car-service")
+        void parseManually_WhenCarServiceTimeout_ShouldHandleGracefully() {
+            wireMockServer.stubFor(post(urlEqualTo("/api/v1/cars/batch"))
+                    .willReturn(aResponse()
+                            .withFixedDelay(8000)
+                            .withStatus(200)
+                            .withBody("[{\"id\":1,\"brand\":\"Toyota\",\"model\":\"Camry\"}]")));
+
+            CarDto testCar = CarDto.builder()
+                    .brand("Toyota")
+                    .model("Camry")
+                    .year(2020)
+                    .mileage(50000)
+                    .price(new BigDecimal("2500000"))
+                    .build();
+
+            when(carSensorParser.parseCars(anyInt())).thenReturn(List.of(testCar));
+
+            List<CarDto> result = parseService.parseManually();
+
+            assertThat(result).isEmpty();
         }
     }
 }

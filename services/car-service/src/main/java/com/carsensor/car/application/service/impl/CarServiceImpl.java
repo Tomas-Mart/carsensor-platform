@@ -24,7 +24,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * Реализация сервиса для работы с автомобилями
+ * Реализация сервиса для работы с автомобилями.
+ *
+ * <p>Содержит бизнес-логику для управления автомобилями,
+ * включая CRUD операции, фильтрацию, поиск и статистику.
  */
 @Service
 @RequiredArgsConstructor
@@ -43,6 +46,15 @@ public class CarServiceImpl implements CarService {
         return carRepository.findById(id)
                 .map(carMapper::toDto)
                 .orElseThrow(() -> new PlatformException.CarNotFoundException(id));
+    }
+
+    @Override
+    public CarDto getCarByBrandAndModel(String brand, String model) {
+        log.debug("Fetching car by brand: {} and model: {}", brand, model);
+
+        return carRepository.findByBrandAndModel(brand, model)
+                .map(carMapper::toDto)
+                .orElseThrow(() -> new PlatformException.CarNotFoundException(brand, model));
     }
 
     @Override

@@ -1,8 +1,8 @@
 package com.carsensor.scheduler.domain.dictionary;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import org.springframework.stereotype.Component;
 import jakarta.annotation.PostConstruct;
 import lombok.Getter;
@@ -16,103 +16,114 @@ import lombok.extern.slf4j.Slf4j;
 @Component
 public class JapaneseCarDictionary {
 
-    @Getter
-    private final Map<String, String> brandMapping = new HashMap<>();
-
-    @Getter
-    private final Map<String, String> modelMapping = new HashMap<>();
-
-    @Getter
-    private final Map<String, String> transmissionMapping = new HashMap<>();
-
-    @Getter
-    private final Map<String, String> driveTypeMapping = new HashMap<>();
-
-    @Getter
-    private final Map<String, String> colorMapping = new HashMap<>();
+    private final Map<String, String> brandMapping = new ConcurrentHashMap<>();
+    private final Map<String, String> modelMapping = new ConcurrentHashMap<>();
+    private final Map<String, String> transmissionMapping = new ConcurrentHashMap<>();
+    private final Map<String, String> driveTypeMapping = new ConcurrentHashMap<>();
+    private final Map<String, String> colorMapping = new ConcurrentHashMap<>();
 
     @PostConstruct
     public void init() {
         log.info("Инициализация словаря для перевода японских терминов");
+        initializeBrands();
+        initializeModels();
+        initializeTransmissions();
+        initializeDriveTypes();
+        initializeColors();
+    }
 
-        // Марки автомобилей
-        brandMapping.put("トヨタ", "Toyota");
-        brandMapping.put("日産", "Nissan");
-        brandMapping.put("ホンダ", "Honda");
-        brandMapping.put("マツダ", "Mazda");
-        brandMapping.put("スバル", "Subaru");
-        brandMapping.put("三菱", "Mitsubishi");
-        brandMapping.put("スズキ", "Suzuki");
-        brandMapping.put("ダイハツ", "Daihatsu");
-        brandMapping.put("いすゞ", "Isuzu");
-        brandMapping.put("レクサス", "Lexus");
-        brandMapping.put("BMW", "BMW");
-        brandMapping.put("メルセデスベンツ", "Mercedes-Benz");
-        brandMapping.put("アウディ", "Audi");
-        brandMapping.put("フォルクスワーゲン", "Volkswagen");
-        brandMapping.put("ポルシェ", "Porsche");
-        brandMapping.put("ボルボ", "Volvo");
+    private void initializeBrands() {
+        Map.ofEntries(
+                Map.entry("トヨタ", "Toyota"),
+                Map.entry("日産", "Nissan"),
+                Map.entry("ホンダ", "Honda"),
+                Map.entry("マツダ", "Mazda"),
+                Map.entry("スバル", "Subaru"),
+                Map.entry("三菱", "Mitsubishi"),
+                Map.entry("スズキ", "Suzuki"),
+                Map.entry("ダイハツ", "Daihatsu"),
+                Map.entry("いすゞ", "Isuzu"),
+                Map.entry("レクサス", "Lexus"),
+                Map.entry("BMW", "BMW"),
+                Map.entry("メルセデスベンツ", "Mercedes-Benz"),
+                Map.entry("アウディ", "Audi"),
+                Map.entry("フォルクスワーゲン", "Volkswagen"),
+                Map.entry("ポルシェ", "Porsche"),
+                Map.entry("ボルボ", "Volvo")
+        ).forEach(brandMapping::put);
+    }
 
-        // Популярные модели
-        modelMapping.put("カローラ", "Corolla");
-        modelMapping.put("プリウス", "Prius");
-        modelMapping.put("アクア", "Aqua");
-        modelMapping.put("フィット", "Fit");
-        modelMapping.put("ヴィッツ", "Vitz");
-        modelMapping.put("ノート", "Note");
-        modelMapping.put("セレナ", "Serena");
-        modelMapping.put("エスティマ", "Estima");
-        modelMapping.put("アルファード", "Alphard");
-        modelMapping.put("ヴェルファイア", "Vellfire");
-        modelMapping.put("ランドクルーザー", "Land Cruiser");
-        modelMapping.put("ハイエース", "Hiace");
-        modelMapping.put("アクセラ", "Axela");
-        modelMapping.put("デミオ", "Demio");
-        modelMapping.put("CX-5", "CX-5");
-        modelMapping.put("インプレッサ", "Impreza");
-        modelMapping.put("レガシィ", "Legacy");
-        modelMapping.put("フォレスター", "Forester");
+    private void initializeModels() {
+        Map.ofEntries(
+                Map.entry("カローラ", "Corolla"),
+                Map.entry("プリウス", "Prius"),
+                Map.entry("アクア", "Aqua"),
+                Map.entry("フィット", "Fit"),
+                Map.entry("ヴィッツ", "Vitz"),
+                Map.entry("ノート", "Note"),
+                Map.entry("セレナ", "Serena"),
+                Map.entry("エスティマ", "Estima"),
+                Map.entry("アルファード", "Alphard"),
+                Map.entry("ヴェルファイア", "Vellfire"),
+                Map.entry("ランドクルーザー", "Land Cruiser"),
+                Map.entry("ハイエース", "Hiace"),
+                Map.entry("アクセラ", "Axela"),
+                Map.entry("デミオ", "Demio"),
+                Map.entry("CX-5", "CX-5"),
+                Map.entry("インプレッサ", "Impreza"),
+                Map.entry("レガシィ", "Legacy"),
+                Map.entry("フォレスター", "Forester")
+        ).forEach(modelMapping::put);
+    }
 
-        // Типы трансмиссии
-        transmissionMapping.put("AT", "AT");
-        transmissionMapping.put("オートマチック", "AT");
-        transmissionMapping.put("CVT", "CVT");
-        transmissionMapping.put("無段変速機", "CVT");
-        transmissionMapping.put("MT", "MT");
-        transmissionMapping.put("マニュアル", "MT");
-        transmissionMapping.put("DCT", "DCT");
-        transmissionMapping.put("デュアルクラッチ", "DCT");
+    private void initializeTransmissions() {
+        Map.ofEntries(
+                Map.entry("AT", "AT"),
+                Map.entry("オートマチック", "AT"),
+                Map.entry("CVT", "CVT"),
+                Map.entry("無段変速機", "CVT"),
+                Map.entry("MT", "MT"),
+                Map.entry("マニュアル", "MT"),
+                Map.entry("DCT", "DCT"),
+                Map.entry("デュアルクラッチ", "DCT")
+        ).forEach(transmissionMapping::put);
+    }
 
-        // Типы привода
-        driveTypeMapping.put("2WD", "2WD");
-        driveTypeMapping.put("FF", "2WD");
-        driveTypeMapping.put("フロント", "2WD");
-        driveTypeMapping.put("4WD", "4WD");
-        driveTypeMapping.put("四輪駆動", "4WD");
-        driveTypeMapping.put("AWD", "AWD");
-        driveTypeMapping.put("全輪駆動", "AWD");
+    private void initializeDriveTypes() {
+        Map.ofEntries(
+                Map.entry("2WD", "2WD"),
+                Map.entry("FF", "2WD"),
+                Map.entry("フロント", "2WD"),
+                Map.entry("4WD", "4WD"),
+                Map.entry("四輪駆動", "4WD"),
+                Map.entry("AWD", "AWD"),
+                Map.entry("全輪駆動", "AWD")
+        ).forEach(driveTypeMapping::put);
+    }
 
-        // Цвета
-        colorMapping.put("ホワイト", "White");
-        colorMapping.put("白", "White");
-        colorMapping.put("ブラック", "Black");
-        colorMapping.put("黒", "Black");
-        colorMapping.put("シルバー", "Silver");
-        colorMapping.put("銀", "Silver");
-        colorMapping.put("グレー", "Gray");
-        colorMapping.put("ガンメタ", "Gray");
-        colorMapping.put("レッド", "Red");
-        colorMapping.put("赤", "Red");
-        colorMapping.put("ブルー", "Blue");
-        colorMapping.put("青", "Blue");
-        colorMapping.put("グリーン", "Green");
-        colorMapping.put("緑", "Green");
-        colorMapping.put("イエロー", "Yellow");
-        colorMapping.put("黄", "Yellow");
-        colorMapping.put("ベージュ", "Beige");
-        colorMapping.put("ゴールド", "Gold");
-        colorMapping.put("パール", "Pearl");
-        colorMapping.put("メタリック", "Metallic");
+    private void initializeColors() {
+        Map.ofEntries(
+                Map.entry("ホワイト", "White"),
+                Map.entry("白", "White"),
+                Map.entry("ブラック", "Black"),
+                Map.entry("黒", "Black"),
+                Map.entry("シルバー", "Silver"),
+                Map.entry("銀", "Silver"),
+                Map.entry("グレー", "Gray"),
+                Map.entry("ガンメタ", "Gray"),
+                Map.entry("レッド", "Red"),
+                Map.entry("赤", "Red"),
+                Map.entry("ブルー", "Blue"),
+                Map.entry("青", "Blue"),
+                Map.entry("グリーン", "Green"),
+                Map.entry("緑", "Green"),
+                Map.entry("イエロー", "Yellow"),
+                Map.entry("黄", "Yellow"),
+                Map.entry("ベージュ", "Beige"),
+                Map.entry("ゴールド", "Gold"),
+                Map.entry("パール", "Pearl"),
+                Map.entry("メタリック", "Metallic")
+        ).forEach(colorMapping::put);
     }
 
     public String normalizeBrand(String japaneseBrand) {
@@ -120,20 +131,16 @@ public class JapaneseCarDictionary {
     }
 
     public String normalizeModel(String japaneseModel) {
-        // Сначала проверяем точное соответствие
-        String normalized = modelMapping.get(japaneseModel);
-        if (normalized != null) {
-            return normalized;
-        }
+        return Optional.ofNullable(modelMapping.get(japaneseModel))
+                .orElseGet(() -> findPartialMatch(japaneseModel));
+    }
 
-        // Пытаемся найти частичное совпадение
-        for (Map.Entry<String, String> entry : modelMapping.entrySet()) {
-            if (japaneseModel.contains(entry.getKey())) {
-                return entry.getValue();
-            }
-        }
-
-        return japaneseModel;
+    private String findPartialMatch(String japaneseModel) {
+        return modelMapping.entrySet().stream()
+                .filter(entry -> japaneseModel.contains(entry.getKey()))
+                .map(Map.Entry::getValue)
+                .findFirst()
+                .orElse(japaneseModel);
     }
 
     public String normalizeTransmission(String japaneseTransmission) {
@@ -149,42 +156,42 @@ public class JapaneseCarDictionary {
     }
 
     public Optional<String> findBrand(String text) {
-        return brandMapping.keySet().stream()
-                .filter(key -> text.contains(key))
-                .findFirst()
-                .map(brandMapping::get);
+        return brandMapping.entrySet().stream()
+                .filter(entry -> text.contains(entry.getKey()))
+                .map(Map.Entry::getValue)
+                .findFirst();
     }
 
     public Optional<String> findModel(String text) {
-        return modelMapping.keySet().stream()
-                .filter(key -> text.contains(key))
-                .findFirst()
-                .map(modelMapping::get);
+        return modelMapping.entrySet().stream()
+                .filter(entry -> text.contains(entry.getKey()))
+                .map(Map.Entry::getValue)
+                .findFirst();
     }
 
     // Методы для динамического обновления словаря
     public void updateBrandMapping(Map<String, String> newMapping) {
-        this.brandMapping.clear();
-        this.brandMapping.putAll(newMapping);
+        updateMapping(this.brandMapping, newMapping);
     }
 
     public void updateModelMapping(Map<String, String> newMapping) {
-        this.modelMapping.clear();
-        this.modelMapping.putAll(newMapping);
+        updateMapping(this.modelMapping, newMapping);
     }
 
     public void updateTransmissionMapping(Map<String, String> newMapping) {
-        this.transmissionMapping.clear();
-        this.transmissionMapping.putAll(newMapping);
+        updateMapping(this.transmissionMapping, newMapping);
     }
 
     public void updateDriveTypeMapping(Map<String, String> newMapping) {
-        this.driveTypeMapping.clear();
-        this.driveTypeMapping.putAll(newMapping);
+        updateMapping(this.driveTypeMapping, newMapping);
     }
 
     public void updateColorMapping(Map<String, String> newMapping) {
-        this.colorMapping.clear();
-        this.colorMapping.putAll(newMapping);
+        updateMapping(this.colorMapping, newMapping);
+    }
+
+    private void updateMapping(Map<String, String> target, Map<String, String> source) {
+        target.clear();
+        target.putAll(source);
     }
 }

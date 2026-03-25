@@ -20,17 +20,63 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * Реализация сервиса для работы с пользователями
+ * Реализация сервиса для работы с пользователями.
+ *
+ * <p>Содержит бизнес-логику для управления пользователями,
+ * включая CRUD операции, управление ролями, блокировку/разблокировку
+ * и смену паролей.
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
-@Slf4j
 @Transactional(readOnly = true)
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
+
+    // В реальном проекте здесь должен быть сервис для получения текущего пользователя
+    private String getCurrentUsername() {
+        // Временная заглушка - в реальном проекте получать из SecurityContext
+        return "current_user";
+    }
+
+    /**
+     * Проверяет, имеет ли текущий пользователь доступ к ресурсу.
+     *
+     * @param username      имя пользователя, чей ресурс проверяется
+     * @param resourceOwner владелец ресурса
+     * @throws PlatformException.AccessDeniedException если доступ запрещен
+     */
+    public void checkUserAccess(String username, String resourceOwner) {
+        if (!username.equals(resourceOwner)) {
+            throw new PlatformException.AccessDeniedException(
+                    username,
+                    "У вас нет доступа к этому ресурсу");
+        }
+    }
+
+    /**
+     * Проверяет, имеет ли текущий пользователь права на редактирование.
+     *
+     * @param user пользователь для проверки
+     * @return true если имеет права
+     */
+    private boolean hasPermissionToEdit(User user) {
+        // Реализация проверки прав
+        return getCurrentUsername().equals(user.getUsername()) || isAdmin();
+    }
+
+    /**
+     * Проверяет, является ли текущий пользователь администратором.
+     *
+     * @return true если администратор
+     */
+    private boolean isAdmin() {
+        // Временная заглушка - в реальном проекте проверять роли
+        return false;
+    }
 
     @Override
     @Transactional
@@ -59,6 +105,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserDto getUserById(Long id) {
+        log.debug("Fetching user by id: {}", id);
         return userRepository.findById(id)
                 .map(this::mapToDto)
                 .orElseThrow(() -> new PlatformException.UserNotFoundException("id: " + id));
@@ -66,6 +113,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserDto getUserByUsername(String username) {
+        log.debug("Fetching user by username: {}", username);
         return userRepository.findByUsername(username)
                 .map(this::mapToDto)
                 .orElseThrow(() -> new PlatformException.UserNotFoundException(username));
@@ -73,6 +121,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserDto getUserByEmail(String email) {
+        log.debug("Fetching user by email: {}", email);
         return userRepository.findByEmail(email)
                 .map(this::mapToDto)
                 .orElseThrow(() -> new PlatformException.UserNotFoundException(email));
@@ -80,6 +129,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public Page<UserDto> getAllUsers(Pageable pageable) {
+        log.debug("Fetching all users with pageable: {}", pageable);
         return userRepository.findAll(pageable)
                 .map(this::mapToDto);
     }
@@ -101,6 +151,13 @@ public class UserServiceImpl implements UserService {
         if (!user.getEmail().equals(userDto.email()) &&
                 userRepository.existsByEmail(userDto.email())) {
             throw new PlatformException.DuplicateResourceException("User", "email: " + userDto.email());
+        }
+
+        // Проверка прав доступа
+        if (!hasPermissionToEdit(user)) {
+            throw new PlatformException.AccessDeniedException(
+                    getCurrentUsername(),
+                    "У вас нет прав для редактирования этого пользователя");
         }
 
         updateUserFields(user, userDto);
@@ -180,6 +237,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public List<UserDto> searchUsers(String query) {
+        log.debug("Searching users by query: {}", query);
         return userRepository.findByFirstNameContainingIgnoreCaseOrLastNameContainingIgnoreCase(query, query)
                 .stream()
                 .map(this::mapToDto)
@@ -188,6 +246,8 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserStatistics getUserStatistics() {
+        log.debug("Fetching user statistics");
+
         long totalUsers = userRepository.count();
         long activeUsers = userRepository.countByIsActiveTrue();
         long blockedUsers = totalUsers - activeUsers;

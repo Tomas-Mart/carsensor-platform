@@ -1,0 +1,79 @@
+spring:
+  datasource:
+    hikari:
+      auto-commit: false
+      connection-timeout: 10000
+      maximum-pool-size: 5
+      idle-timeout: 10000
+      max-lifetime: 60000
+      validation-timeout: 3000
+      leak-detection-threshold: 15000
+      register-mbeans: false
+      connection-test-query: SELECT 1
+      initialization-fail-timeout: 1
+      keepalive-time: 30000
+  jpa:
+    open-in-view: true
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        connection:
+          provider_disables_autocommit: true
+        temp:
+          use_jdbc_metadata_defaults: false
+        format_sql: true
+        show_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        default_batch_fetch_size: 20
+        jdbc:
+          batch_size: 20
+          fetch_size: 100
+          lob:
+            non_contextual_creation: true
+          timeout: 30
+        order_inserts: true
+        order_updates: true
+        cache:
+          use_second_level_cache: false
+          use_query_cache: false
+        generate_statistics: false
+  flyway:
+    enabled: false
+  cache:
+    type: simple
+  sql:
+    init:
+      mode: never
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: ""
+
+server:
+  tomcat:
+    connection-timeout: 30000
+    threads:
+      max: 200
+    keep-alive-timeout: 30000
+
+app:
+  jwt:
+    secret: mySecretKeyForJWTTokenGenerationThatMustBeAtLeast512BitsLongInProductionEnvironment2026
+    access-token-expiration: 3600
+    refresh-token-expiration: 86400
+
+logging:
+  level:
+    com.carsensor: DEBUG
+    com.carsensor.auth.infrastructure.security: DEBUG
+    org.springframework.security: DEBUG
+    org.springframework.web: WARN
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+    io.zonky.test.db.postgres: WARN
+    org.springframework.jdbc.datasource.init: INFO
+    org.springframework.transaction: DEBUG
+    com.zaxxer.hikari: DEBUG
+    org.hibernate.engine.jdbc.spi.SqlExceptionHelper: ERROR

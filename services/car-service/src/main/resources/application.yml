@@ -70,8 +70,10 @@ spring:
     activate:
       on-profile: test
   datasource:
-    url: jdbc:tc:postgresql:16-alpine:///testdb
-    driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
+    url: jdbc:postgresql://localhost:5432/testdb
+    driver-class-name: org.postgresql.Driver
+    username: postgres
+    password: postgres
   jpa:
     hibernate:
       ddl-auto: create-drop

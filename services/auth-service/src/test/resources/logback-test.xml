@@ -1,0 +1,11 @@
+<configuration>
+    <include resource="org/springframework/boot/logging/logback/base.xml"/>
+
+    <logger name="org.springframework.jdbc" level="WARN"/>
+    <logger name="org.hibernate.SQL" level="WARN"/>
+    <logger name="org.hibernate.type" level="WARN"/>
+    <logger name="com.zaxxer.hikari" level="INFO"/>
+    <logger name="org.postgresql" level="WARN"/>
+    <logger name="io.zonky.test.db.postgres" level="WARN"/>
+    <logger name="org.springframework.transaction" level="INFO"/>
+</configuration>

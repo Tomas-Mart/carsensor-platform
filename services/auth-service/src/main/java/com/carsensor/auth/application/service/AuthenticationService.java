@@ -2,6 +2,7 @@ package com.carsensor.auth.application.service;
 
 import com.carsensor.platform.dto.AuthResponse;
 import com.carsensor.platform.dto.LoginRequest;
+import com.carsensor.platform.dto.UserDto;
 
 /**
  * Интерфейс сервиса аутентификации
@@ -42,18 +43,7 @@ public interface AuthenticationService {
     /**
      * Получение информации о текущем аутентифицированном пользователе
      *
-     * @return информация о пользователе
+     * @return DTO пользователя
      */
-    CurrentUser getCurrentUser();
-
-    /**
-     * Информация о текущем пользователе
-     */
-    record CurrentUser(
-            Long id,
-            String username,
-            String email,
-            String[] roles
-    ) {
-    }
+    UserDto getCurrentUser();
 }

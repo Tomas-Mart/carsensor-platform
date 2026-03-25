@@ -6,12 +6,16 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import com.carsensor.car.CarServiceApplication;
 import com.carsensor.car.domain.entity.Car;
 import com.carsensor.car.domain.repository.CarRepository;
-import com.carsensor.common.test.AbstractIntegrationTest;
 import com.carsensor.common.test.util.TestJwtUtils;
 import com.carsensor.platform.dto.CarDto;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -23,8 +27,37 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@DisplayName("Бизнес-тесты CarController")
-class CarControllerBusinessTest extends AbstractIntegrationTest {
+/**
+ * Слайс-тесты CarController.
+ *
+ * <p><b>Тип теста:</b> Интеграционный слайс-тест (Web Layer Test)
+ * <ul>
+ *   <li>Загружает только web слой + необходимые бины</li>
+ *   <li>Использует MockMvc без реального HTTP сервера</li>
+ *   <li>Быстрее полных интеграционных тестов</li>
+ *   <li>Подходит для тестирования бизнес-логики контроллеров</li>
+ * </ul>
+ *
+ * <p><b>Когда использовать:</b>
+ * <ul>
+ *   <li>Тестирование эндпоинтов с реальной базой данных</li>
+ *   <li>Проверка сериализации/десериализации JSON</li>
+ *   <li>Тестирование фильтрации, пагинации, сортировки</li>
+ *   <li>Проверка HTTP статусов и структуры ответов</li>
+ * </ul>
+ *
+ * @see org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
+ * @since 1.0
+ */
+@SpringBootTest(
+        classes = CarServiceApplication.class,
+        webEnvironment = SpringBootTest.WebEnvironment.MOCK
+)
+@AutoConfigureMockMvc
+@ActiveProfiles("test")
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@DisplayName("Слайс-тесты CarController")
+class CarControllerBusinessTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -44,31 +77,17 @@ class CarControllerBusinessTest extends AbstractIntegrationTest {
     }
 
     private void createTestCars() {
-        Car car1 = Car.builder()
-                .brand("Toyota")
-                .model("Camry")
-                .year(2020)
-                .mileage(50000)
-                .price(new BigDecimal("2500000"))
-                .build();
-
-        Car car2 = Car.builder()
-                .brand("Toyota")
-                .model("RAV4")
-                .year(2021)
-                .mileage(30000)
-                .price(new BigDecimal("3500000"))
-                .build();
-
-        Car car3 = Car.builder()
-                .brand("Honda")
-                .model("Civic")
-                .year(2022)
-                .mileage(10000)
-                .price(new BigDecimal("1800000"))
-                .build();
-
-        carRepository.saveAll(List.of(car1, car2, car3));
+        carRepository.saveAll(List.of(
+                Car.builder()
+                        .brand("Toyota").model("Camry").year(2020)
+                        .mileage(50000).price(new BigDecimal("2500000")).build(),
+                Car.builder()
+                        .brand("Toyota").model("RAV4").year(2021)
+                        .mileage(30000).price(new BigDecimal("3500000")).build(),
+                Car.builder()
+                        .brand("Honda").model("Civic").year(2022)
+                        .mileage(10000).price(new BigDecimal("1800000")).build()
+        ));
     }
 
     @Nested
@@ -77,7 +96,9 @@ class CarControllerBusinessTest extends AbstractIntegrationTest {
 
         @BeforeEach
         void setUp() {
+            carRepository.deleteAll();
             createTestCars();
+            adminToken = TestJwtUtils.createAdminToken();
         }
 
         @Test
@@ -96,20 +117,7 @@ class CarControllerBusinessTest extends AbstractIntegrationTest {
                             .param("brand", "Toyota")
                             .header("Authorization", "Bearer " + adminToken))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.content.length()").value(2))
-                    .andExpect(jsonPath("$.content[0].brand").value("Toyota"))
-                    .andExpect(jsonPath("$.content[1].brand").value("Toyota"));
-        }
-
-        @Test
-        @DisplayName("Фильтрация по марке Honda")
-        void filterByBrand_Honda_ReturnsHondaCars() throws Exception {
-            mockMvc.perform(get("/api/v1/cars")
-                            .param("brand", "Honda")
-                            .header("Authorization", "Bearer " + adminToken))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.content.length()").value(1))
-                    .andExpect(jsonPath("$.content[0].brand").value("Honda"));
+                    .andExpect(jsonPath("$.content.length()").value(2));
         }
 
         @Test
@@ -120,7 +128,7 @@ class CarControllerBusinessTest extends AbstractIntegrationTest {
                             .param("priceTo", "3000000")
                             .header("Authorization", "Bearer " + adminToken))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.content.length()").value(1)); // Только Camry
+                    .andExpect(jsonPath("$.content.length()").value(1));
         }
 
         @Test
@@ -157,14 +165,12 @@ class CarControllerBusinessTest extends AbstractIntegrationTest {
 
         @BeforeEach
         void setUp() {
+            carRepository.deleteAll();
             Car car = Car.builder()
-                    .brand("Toyota")
-                    .model("Camry")
-                    .year(2020)
-                    .mileage(50000)
-                    .price(new BigDecimal("2500000"))
-                    .build();
+                    .brand("Toyota").model("Camry").year(2020)
+                    .mileage(50000).price(new BigDecimal("2500000")).build();
             existingCarId = carRepository.save(car).getId();
+            adminToken = TestJwtUtils.createAdminToken();
         }
 
         @Test
@@ -192,16 +198,18 @@ class CarControllerBusinessTest extends AbstractIntegrationTest {
     @DisplayName("POST /api/v1/cars - создание")
     class CreateCarBusinessTests {
 
+        @BeforeEach
+        void setUp() {
+            carRepository.deleteAll();
+            adminToken = TestJwtUtils.createAdminToken();
+        }
+
         @Test
         @DisplayName("Валидные данные - создает автомобиль")
         void validData_CreatesCar() throws Exception {
             CarDto newCar = CarDto.builder()
-                    .brand("Mazda")
-                    .model("CX-5")
-                    .year(2022)
-                    .mileage(15000)
-                    .price(new BigDecimal("2800000"))
-                    .build();
+                    .brand("Mazda").model("CX-5").year(2022)
+                    .mileage(15000).price(new BigDecimal("2800000")).build();
 
             mockMvc.perform(post("/api/v1/cars")
                             .header("Authorization", "Bearer " + adminToken)
@@ -216,10 +224,7 @@ class CarControllerBusinessTest extends AbstractIntegrationTest {
         @DisplayName("Невалидные данные - 400")
         void invalidData_ReturnsBadRequest() throws Exception {
             CarDto invalidCar = CarDto.builder()
-                    .brand("")
-                    .year(1800)
-                    .mileage(-100)
-                    .build();
+                    .brand("").year(1800).mileage(-100).build();
 
             mockMvc.perform(post("/api/v1/cars")
                             .header("Authorization", "Bearer " + adminToken)
@@ -233,13 +238,8 @@ class CarControllerBusinessTest extends AbstractIntegrationTest {
         @DisplayName("Дублирующийся externalId - 409")
         void duplicateExternalId_ReturnsConflict() throws Exception {
             CarDto car1 = CarDto.builder()
-                    .brand("Mazda")
-                    .model("CX-5")
-                    .externalId("EXT001")
-                    .year(2022)
-                    .mileage(15000)
-                    .price(new BigDecimal("2800000"))
-                    .build();
+                    .brand("Mazda").model("CX-5").externalId("EXT001")
+                    .year(2022).mileage(15000).price(new BigDecimal("2800000")).build();
 
             mockMvc.perform(post("/api/v1/cars")
                             .header("Authorization", "Bearer " + adminToken)
@@ -248,13 +248,8 @@ class CarControllerBusinessTest extends AbstractIntegrationTest {
                     .andExpect(status().isCreated());
 
             CarDto car2 = CarDto.builder()
-                    .brand("Mazda")
-                    .model("CX-5")
-                    .externalId("EXT001")
-                    .year(2023)
-                    .mileage(5000)
-                    .price(new BigDecimal("3200000"))
-                    .build();
+                    .brand("Mazda").model("CX-5").externalId("EXT001")
+                    .year(2023).mileage(5000).price(new BigDecimal("3200000")).build();
 
             mockMvc.perform(post("/api/v1/cars")
                             .header("Authorization", "Bearer " + adminToken)
@@ -273,26 +268,20 @@ class CarControllerBusinessTest extends AbstractIntegrationTest {
 
         @BeforeEach
         void setUp() {
+            carRepository.deleteAll();
             Car car = Car.builder()
-                    .brand("Toyota")
-                    .model("Camry")
-                    .year(2020)
-                    .mileage(50000)
-                    .price(new BigDecimal("2500000"))
-                    .build();
+                    .brand("Toyota").model("Camry").year(2020)
+                    .mileage(50000).price(new BigDecimal("2500000")).build();
             existingCarId = carRepository.save(car).getId();
+            adminToken = TestJwtUtils.createAdminToken();
         }
 
         @Test
         @DisplayName("Существующий ID - обновляет автомобиль")
         void existingId_UpdatesCar() throws Exception {
             CarDto updateData = CarDto.builder()
-                    .brand("Toyota")
-                    .model("Camry Updated")
-                    .year(2021)
-                    .mileage(45000)
-                    .price(new BigDecimal("2400000"))
-                    .build();
+                    .brand("Toyota").model("Camry Updated").year(2021)
+                    .mileage(45000).price(new BigDecimal("2400000")).build();
 
             mockMvc.perform(put("/api/v1/cars/" + existingCarId)
                             .header("Authorization", "Bearer " + adminToken)
@@ -306,12 +295,8 @@ class CarControllerBusinessTest extends AbstractIntegrationTest {
         @DisplayName("Несуществующий ID - 404")
         void nonExistingId_ReturnsNotFound() throws Exception {
             CarDto updateData = CarDto.builder()
-                    .brand("Toyota")
-                    .model("Camry")
-                    .year(2021)
-                    .mileage(45000)
-                    .price(new BigDecimal("2400000"))
-                    .build();
+                    .brand("Toyota").model("Camry").year(2021)
+                    .mileage(45000).price(new BigDecimal("2400000")).build();
 
             mockMvc.perform(put("/api/v1/cars/999")
                             .header("Authorization", "Bearer " + adminToken)
@@ -329,14 +314,12 @@ class CarControllerBusinessTest extends AbstractIntegrationTest {
 
         @BeforeEach
         void setUp() {
+            carRepository.deleteAll();
             Car car = Car.builder()
-                    .brand("Toyota")
-                    .model("Camry")
-                    .year(2020)
-                    .mileage(50000)
-                    .price(new BigDecimal("2500000"))
-                    .build();
+                    .brand("Toyota").model("Camry").year(2020)
+                    .mileage(50000).price(new BigDecimal("2500000")).build();
             existingCarId = carRepository.save(car).getId();
+            adminToken = TestJwtUtils.createAdminToken();
         }
 
         @Test

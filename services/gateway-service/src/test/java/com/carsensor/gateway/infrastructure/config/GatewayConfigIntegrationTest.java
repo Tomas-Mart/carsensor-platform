@@ -8,11 +8,13 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.route.Route;
 import org.springframework.cloud.gateway.route.RouteLocator;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.web.server.ServerWebExchange;
 import com.carsensor.gateway.GatewayApplication;
+import com.carsensor.gateway.config.TestGatewayConfig;
 import com.carsensor.gateway.infrastructure.security.JwtAuthenticationGatewayFilter;
 import reactor.test.StepVerifier;
 
@@ -21,19 +23,14 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 @ActiveProfiles("test")
+@Import(TestGatewayConfig.class)
 @DisplayName("Интеграционные тесты GatewayConfig")
-@SpringBootTest(
-        classes = GatewayApplication.class,
+@SpringBootTest(classes = GatewayApplication.class,
         webEnvironment = SpringBootTest.WebEnvironment.MOCK,
-        properties = {
-                "spring.cloud.compatibility-verifier.enabled=false",
-                "spring.cloud.gateway.enabled=true"
-        }
-)
-@TestPropertySource(properties = {
-        "services.auth.url=http://auth-service:8081",
-        "services.car.url=http://car-service:8082"
-})
+        properties = {"spring.cloud.compatibility-verifier.enabled=false",
+                "spring.cloud.gateway.enabled=true"})
+@TestPropertySource(properties = {"services.auth.url=http://auth-service:8081",
+        "services.car.url=http://car-service:8082"})
 class GatewayConfigIntegrationTest {
 
     @MockitoBean

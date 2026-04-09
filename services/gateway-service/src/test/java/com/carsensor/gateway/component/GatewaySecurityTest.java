@@ -7,12 +7,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.boot.test.web.server.LocalServerPort;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import com.carsensor.gateway.GatewayApplication;
+import com.carsensor.gateway.config.TestGatewayConfig;
 import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
@@ -25,6 +27,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest(classes = GatewayApplication.class,
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
         properties = {"spring.cloud.compatibility-verifier.enabled=false"})
+@Import(TestGatewayConfig.class)
 class GatewaySecurityTest {
 
     @LocalServerPort
@@ -42,6 +45,8 @@ class GatewaySecurityTest {
     static void registerWireMockProperties(DynamicPropertyRegistry registry) {
         registry.add("services.auth.url", () -> "http://localhost:" + wireMock.getPort());
         registry.add("services.car.url", () -> "http://localhost:" + wireMock.getPort());
+        registry.add("spring.security.oauth2.resourceserver.jwt.jwk-set-uri",
+                () -> "http://localhost:" + wireMock.getPort() + "/.well-known/jwks.json");
     }
 
     private String getBaseUrl() {

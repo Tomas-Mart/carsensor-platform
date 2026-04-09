@@ -2,7 +2,6 @@ package com.carsensor.auth.application.service.impl;
 
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
@@ -11,116 +10,137 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.carsensor.auth.application.dto.UserDto;
 import com.carsensor.auth.application.service.AuthenticationService;
+import com.carsensor.auth.application.service.internal.UserInternalService;
 import com.carsensor.auth.domain.entity.Role;
 import com.carsensor.auth.domain.entity.User;
-import com.carsensor.auth.domain.repository.UserRepository;
 import com.carsensor.auth.infrastructure.security.JwtTokenProvider;
 import com.carsensor.platform.dto.AuthResponse;
 import com.carsensor.platform.dto.LoginRequest;
-import com.carsensor.platform.dto.UserDto;
 import com.carsensor.platform.exception.PlatformException;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+/**
+ * Реализация сервиса аутентификации.
+ *
+ * @author CarSensor Platform Team
+ * @since 1.0
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class AuthenticationServiceImpl implements AuthenticationService {
 
-    private final AuthenticationManager authenticationManager;
     private final JwtTokenProvider tokenProvider;
-    private final UserRepository userRepository;
+    private final UserInternalService userInternalService;
+    private final AuthenticationManager authenticationManager;
 
     private final Set<String> blacklistedTokens = ConcurrentHashMap.newKeySet();
 
     @Override
     @Transactional
     public AuthResponse authenticate(LoginRequest loginRequest) {
-        log.info("=== AUTHENTICATION START ===");
-        log.info("Authenticating user: {}", loginRequest.username());
-        log.info("Password length: {}", loginRequest.password().length());
+        log.info("Аутентификация пользователя: {}", loginRequest.username());
 
         try {
-            log.info("Creating authentication token...");
             UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                     loginRequest.username(),
                     loginRequest.password()
             );
-            log.info("Calling authenticationManager.authenticate()...");
-            log.info("AuthenticationManager class: {}", authenticationManager.getClass().getName());
-            Authentication authentication = authenticationManager.authenticate(authToken);
-            log.info("Authentication successful for user: {}", loginRequest.username());
 
+            Authentication authentication = authenticationManager.authenticate(authToken);
             SecurityContextHolder.getContext().setAuthentication(authentication);
+
             User user = (User) authentication.getPrincipal();
 
+            // Проверка на блокировку
+            if (user.isLocked()) {
+                log.warn("Пользователь заблокирован: {}", user.getUsername());
+                throw new PlatformException.UserBlockedException(user.getUsername());
+            }
+
+            // Проверка на деактивацию
             if (!user.isActive()) {
-                log.warn("User is blocked: {}", user.getUsername());
+                log.warn("Пользователь деактивирован: {}", user.getUsername());
                 throw new PlatformException.AccessDeniedException(
-                        user.getUsername(), "Учетная запись заблокирована"
+                        user.getUsername(), "Учетная запись деактивирована"
                 );
             }
 
             String accessToken = tokenProvider.generateAccessToken(user);
             String refreshToken = tokenProvider.generateRefreshToken(user);
+            String[] rolesArray = user.getRoles()
+                    .stream()
+                    .map(Role::getName)
+                    .toArray(String[]::new);
 
-            log.info("User authenticated successfully: {}", user.getUsername());
+            log.info("Пользователь успешно аутентифицирован: {}", user.getUsername());
 
-            return AuthResponse.builder()
-                    .accessToken(accessToken)
-                    .refreshToken(refreshToken)
-                    .expiresIn(tokenProvider.getAccessTokenValidityInSeconds())
-                    .username(user.getUsername())
-                    .roles(user.getRoles().stream()
-                            .map(Role::getName)
-                            .toArray(String[]::new))
-                    .build();
+            return AuthResponse.of(
+                    accessToken,
+                    refreshToken,
+                    tokenProvider.getAccessTokenValidityInSeconds(),
+                    user.getUsername(),
+                    rolesArray
+            );
 
         } catch (PlatformException e) {
-            log.error("Platform exception during authentication for user: {} - {}",
-                    loginRequest.username(), e.getUserMessage());
             throw e;
         } catch (BadCredentialsException e) {
-            log.error("Bad credentials for user: {}", loginRequest.username());
+            log.error("Неверные учетные данные для пользователя: {}", loginRequest.username());
             throw new PlatformException.InvalidCredentialsException();
         } catch (DisabledException e) {
-            log.error("User is disabled: {}", loginRequest.username());
+            log.error("Пользователь деактивирован: {}", loginRequest.username());
             throw new PlatformException.AccessDeniedException(
                     loginRequest.username(), "Учетная запись деактивирована"
             );
         } catch (Exception e) {
-            log.error("Authentication failed for user: {}", loginRequest.username(), e);
+            log.error("Ошибка аутентификации для пользователя: {}", loginRequest.username(), e);
             throw new PlatformException.InvalidCredentialsException();
         }
     }
 
     @Override
-    @Transactional
-    public AuthResponse refreshToken(String refreshToken) {
+    public AuthResponse refreshToken(String authHeader, HttpServletRequest request) {
         log.debug("Обновление токена");
 
-        if (refreshToken == null || refreshToken.isBlank()) {
-            log.warn("Refresh token is null or empty");
-            // Используем MissingTokenException как ожидают тесты
+        // Валидация заголовка
+        if (authHeader == null) {
+            log.warn("Запрос на обновление токена без заголовка авторизации от IP: {}",
+                    request.getRemoteAddr());
+            throw new PlatformException.MissingTokenException("Отсутствует заголовок авторизации");
+        }
+
+        if (!authHeader.startsWith("Bearer ")) {
+            log.warn("Неверный формат заголовка авторизации от IP: {}", request.getRemoteAddr());
+            throw new PlatformException.InvalidTokenFormatException(
+                    "Неверный формат заголовка авторизации. Должен начинаться с 'Bearer '"
+            );
+        }
+
+        String refreshToken = authHeader.substring(7);
+
+        if (refreshToken.isBlank()) {
+            log.warn("Refresh token пустой от IP: {}", request.getRemoteAddr());
             throw new PlatformException.MissingTokenException("Токен не предоставлен");
         }
 
         if (blacklistedTokens.contains(refreshToken)) {
-            log.warn("Refresh token находится в черном списке");
+            log.warn("Refresh token находится в черном списке от IP: {}", request.getRemoteAddr());
             throw new PlatformException.InvalidTokenException("Токен отозван");
         }
 
         try {
             tokenProvider.validateToken(refreshToken);
         } catch (PlatformException.TokenExpiredException e) {
-            // Пробрасываем TokenExpiredException как ожидают тесты
             throw e;
         } catch (PlatformException.InvalidTokenFormatException e) {
-            // Пробрасываем InvalidTokenFormatException как ожидают тесты
             throw e;
         } catch (Exception e) {
-            log.error("Invalid refresh token", e);
+            log.error("Невалидный refresh token", e);
             String message = e.getMessage();
             if (message != null && message.contains("expired")) {
                 throw new PlatformException.TokenExpiredException("Токен истек");
@@ -132,63 +152,77 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         }
 
         String username = tokenProvider.extractUsername(refreshToken);
-        User user = userRepository.findByUsername(username)
+        User user = userInternalService.findUserEntityByUsername(username)
                 .orElseThrow(() -> new PlatformException.UserNotFoundException(username));
 
         if (!user.isActive()) {
-            log.warn("Пользователь заблокирован: {}", user.getUsername());
-            // Используем AccessDeniedException как ожидают тесты
+            log.warn("Пользователь деактивирован: {}", user.getUsername());
             throw new PlatformException.AccessDeniedException(
-                    user.getUsername(), "Учетная запись заблокирована"
+                    user.getUsername(), "Учетная запись деактивирована"
             );
         }
 
         String newAccessToken = tokenProvider.generateAccessToken(user);
+        String[] rolesArray = user.getRoles()
+                .stream()
+                .map(Role::getName)
+                .toArray(String[]::new);
+
         log.info("Токен успешно обновлен для пользователя: {}", user.getUsername());
 
-        return AuthResponse.builder()
-                .accessToken(newAccessToken)
-                .refreshToken(refreshToken)
-                .expiresIn(tokenProvider.getAccessTokenValidityInSeconds())
-                .username(user.getUsername())
-                .roles(user.getRoles().stream()
-                        .map(Role::getName)
-                        .toArray(String[]::new))
-                .build();
+        return AuthResponse.of(
+                newAccessToken,
+                refreshToken,
+                tokenProvider.getAccessTokenValidityInSeconds(),
+                user.getUsername(),
+                rolesArray
+        );
     }
 
     @Override
-    @Transactional
-    public void logout(String accessToken) {
-        log.debug("Logging out user");
+    public void logout(String authHeader, HttpServletRequest request) {
+        log.debug("Выход из системы");
 
-        if (accessToken != null && accessToken.startsWith("Bearer ")) {
-            String token = accessToken.substring(7);
-            blacklistedTokens.add(token);
-            SecurityContextHolder.clearContext();
-            log.debug("User logged out successfully");
-        } else {
-            log.warn("Invalid or missing access token for logout");
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            log.warn("Невалидный токен при выходе от IP: {}", request.getRemoteAddr());
+            throw new PlatformException.MissingTokenException(
+                    "Отсутствует или неверный формат токена авторизации"
+            );
         }
+
+        String token = authHeader.substring(7);
+        blacklistedTokens.add(token);
+        SecurityContextHolder.clearContext();
+        log.debug("Пользователь успешно вышел из системы");
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public boolean validateToken(String token) {
-        if (token == null || token.isBlank()) {
-            log.debug("Token is null or empty");
+    public boolean validateToken(String authHeader) {
+        // Проверка наличия и формата заголовка
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            log.debug("Неверный формат заголовка для проверки токена");
             return false;
         }
 
+        // Извлечение токена
+        String token = authHeader.substring(7);
+
+        if (token.isBlank()) {
+            log.debug("Пустой токен для проверки");
+            return false;
+        }
+
+        // Проверка черного списка
         if (blacklistedTokens.contains(token)) {
-            log.debug("Token is blacklisted");
+            log.debug("Токен находится в черном списке");
             return false;
         }
 
+        // Валидация токена
         try {
             return tokenProvider.validateToken(token);
         } catch (Exception e) {
-            log.debug("Token validation failed: {}", e.getMessage());
+            log.debug("Ошибка валидации токена: {}", e.getMessage());
             return false;
         }
     }
@@ -199,9 +233,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
         if (authentication == null ||
-                !authentication.isAuthenticated() ||
-                "anonymousUser".equals(authentication.getPrincipal())) {
-            log.warn("Attempt to get current user without authentication");
+            !authentication.isAuthenticated() ||
+            "anonymousUser".equals(authentication.getPrincipal())) {
+            log.warn("Попытка получить текущего пользователя без аутентификации");
             throw new PlatformException.UnauthorizedException("Необходима аутентификация");
         }
 
@@ -209,26 +243,14 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             User user = (User) authentication.getPrincipal();
 
             if (user == null) {
-                log.warn("User principal is null");
+                log.warn("Principal пользователя равен null");
                 throw new PlatformException.UnauthorizedException("Необходима аутентификация");
             }
 
-            return UserDto.builder()
-                    .id(user.getId())
-                    .username(user.getUsername())
-                    .email(user.getEmail())
-                    .firstName(user.getFirstName())
-                    .lastName(user.getLastName())
-                    .isActive(user.isActive())
-                    .roles(user.getRoles().stream()
-                            .map(Role::getName)
-                            .collect(Collectors.toList()))
-                    .createdAt(user.getCreatedAt())
-                    .updatedAt(user.getUpdatedAt())
-                    .build();
+            return UserDto.from(user);
 
         } catch (ClassCastException e) {
-            log.error("Authentication principal is not a User object", e);
+            log.error("Principal не является объектом User", e);
             throw new PlatformException.UnauthorizedException("Неверный формат аутентификации");
         }
     }

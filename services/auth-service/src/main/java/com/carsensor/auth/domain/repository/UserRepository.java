@@ -38,15 +38,14 @@ import jakarta.persistence.QueryHint;
  *   <li>Для ленивой загрузки разрешений используйте {@link #findPermissionsByUsername(String)}</li>
  * </ul>
  *
- * @see User
- * @see JpaRepository
+ * @author CarSensor Platform Team
  * @since 1.0
  */
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {
 
     // ============================================================
-    // Базовые методы (оптимизированные для производительности)
+    // БАЗОВЫЕ МЕТОДЫ (оптимизированные для производительности)
     // ============================================================
 
     /**
@@ -64,7 +63,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
      *
      * @param username имя пользователя (не может быть null)
      * @return Optional с найденным пользователем или пустой Optional
-     * @since 1.0
      */
     @QueryHints(@QueryHint(name = "org.hibernate.timeout", value = "10"))
     Optional<User> findByUsername(@Param("username") String username);
@@ -81,7 +79,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByEmail(@Param("email") String email);
 
     // ============================================================
-    // Методы с JOIN FETCH для загрузки связей
+    // МЕТОДЫ С JOIN FETCH (для загрузки связей)
     // ============================================================
 
     /**
@@ -95,7 +93,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
      *   <li>Использует LEFT JOIN FETCH для загрузки всех связей одним запросом</li>
      *   <li>Использует DISTINCT для устранения дубликатов при множественных связях</li>
      *   <li>Предотвращает N+1 проблему при обращении к ролям и разрешениям</li>
-     *   <li>Таймаут запроса 30 секунд</li>
+     *   <li>Таймаут запроса 60 секунд</li>
      * </ul>
      *
      * @param username имя пользователя (не может быть null)
@@ -142,12 +140,11 @@ public interface UserRepository extends JpaRepository<User, Long> {
      * <ul>
      *   <li>Использует LEFT JOIN FETCH для загрузки ролей одним запросом</li>
      *   <li>Предотвращает N+1 проблему для ролей</li>
-     *   <li>Таймаут запроса 15 секунд</li>
+     *   <li>Таймаут запроса 30 секунд</li>
      * </ul>
      *
      * @param username имя пользователя (не может быть null)
      * @return Optional с найденным пользователем и его ролями, или пустой Optional
-     * @since 1.0
      */
     @Query("""
             SELECT u
@@ -168,10 +165,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
      * <p><b>Пример использования:</b>
      * <pre>{@code
      * // Сначала загружаем пользователя с ролями
-     * User user = userRepository.findByUsernameWithRoles("admin").orElseThrow();
+     * var user = userRepository.findByUsernameWithRoles("admin").orElseThrow();
      *
      * // Затем, если нужны разрешения, загружаем их отдельно
-     * Set<Permission> permissions = userRepository.findPermissionsByUsername("admin");
+     * var permissions = userRepository.findPermissionsByUsername("admin");
      * }</pre>
      *
      * <p><b>Оптимизация:</b>
@@ -179,12 +176,11 @@ public interface UserRepository extends JpaRepository<User, Long> {
      *   <li>Загружает только разрешения, без лишних данных</li>
      *   <li>Использует JOIN через связь User → Role → Permission</li>
      *   <li>Использует DISTINCT для устранения дубликатов</li>
-     *   <li>Таймаут запроса 15 секунд</li>
+     *   <li>Таймаут запроса 30 секунд</li>
      * </ul>
      *
      * @param username имя пользователя (не может быть null)
      * @return Set разрешений, доступных пользователю
-     * @since 1.0
      */
     @Query("""
             SELECT DISTINCT p
@@ -197,7 +193,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Set<Permission> findPermissionsByUsername(@Param("username") String username);
 
     // ============================================================
-    // Методы проверки существования (оптимизированные)
+    // МЕТОДЫ ПРОВЕРКИ СУЩЕСТВОВАНИЯ (оптимизированные)
     // ============================================================
 
     /**
@@ -207,17 +203,13 @@ public interface UserRepository extends JpaRepository<User, Long> {
      * <ul>
      *   <li>Использует EXISTS подзапрос - быстрее чем COUNT</li>
      *   <li>Останавливается на первом найденном результате</li>
-     *   <li>Таймаут запроса 5 секунд</li>
+     *   <li>Таймаут запроса 10 секунд</li>
      * </ul>
      *
      * @param username имя пользователя
      * @return true если пользователь существует, false в противном случае
      */
-    @Query("""
-            SELECT EXISTS(
-                SELECT 1 FROM User u WHERE u.username = :username
-            )
-            """)
+    @Query("SELECT EXISTS(SELECT 1 FROM User u WHERE u.username = :username)")
     @QueryHints(@QueryHint(name = "org.hibernate.timeout", value = "10"))
     boolean existsByUsername(@Param("username") String username);
 
@@ -227,16 +219,12 @@ public interface UserRepository extends JpaRepository<User, Long> {
      * @param email email пользователя
      * @return true если пользователь существует, false в противном случае
      */
-    @Query("""
-            SELECT EXISTS(
-                SELECT 1 FROM User u WHERE u.email = :email
-            )
-            """)
+    @Query("SELECT EXISTS(SELECT 1 FROM User u WHERE u.email = :email)")
     @QueryHints(@QueryHint(name = "org.hibernate.timeout", value = "10"))
     boolean existsByEmail(@Param("email") String email);
 
     // ============================================================
-    // Статистические методы (оптимизированные агрегации)
+    // СТАТИСТИЧЕСКИЕ МЕТОДЫ (оптимизированные агрегации)
     // ============================================================
 
     /**
@@ -246,32 +234,14 @@ public interface UserRepository extends JpaRepository<User, Long> {
      * <ul>
      *   <li>Использует индекс idx_users_is_active для быстрого подсчета</li>
      *   <li>Нет загрузки сущностей - только агрегация</li>
-     *   <li>Таймаут запроса 10 секунд</li>
+     *   <li>Таймаут запроса 30 секунд</li>
      * </ul>
      *
      * @return количество активных пользователей
      */
-    @Query("""
-            SELECT COUNT(u)
-            FROM User u
-            WHERE u.isActive = true
-            """)
+    @Query("SELECT COUNT(u) FROM User u WHERE u.isActive = true")
     @QueryHints(@QueryHint(name = "org.hibernate.timeout", value = "30"))
     long countByIsActiveTrue();
-
-    /**
-     * Подсчитывает количество пользователей, созданных после указанной даты.
-     *
-     * @param date дата для сравнения
-     * @return количество пользователей
-     */
-    @Query("""
-            SELECT COUNT(u)
-            FROM User u
-            WHERE u.createdAt > :date
-            """)
-    @QueryHints(@QueryHint(name = "org.hibernate.timeout", value = "30"))
-    long countByCreatedAtAfter(@Param("date") LocalDateTime date);
 
     /**
      * Подсчитывает количество пользователей по статусу активности.
@@ -279,16 +249,22 @@ public interface UserRepository extends JpaRepository<User, Long> {
      * @param isActive статус активности
      * @return количество пользователей
      */
-    @Query("""
-            SELECT COUNT(u)
-            FROM User u
-            WHERE u.isActive = :isActive
-            """)
+    @Query("SELECT COUNT(u) FROM User u WHERE u.isActive = :isActive")
     @QueryHints(@QueryHint(name = "org.hibernate.timeout", value = "30"))
     long countByActiveStatus(@Param("isActive") boolean isActive);
 
+    /**
+     * Подсчитывает количество пользователей, созданных после указанной даты.
+     *
+     * @param date дата для сравнения
+     * @return количество пользователей
+     */
+    @Query("SELECT COUNT(u) FROM User u WHERE u.createdAt > :date")
+    @QueryHints(@QueryHint(name = "org.hibernate.timeout", value = "30"))
+    long countByCreatedAtAfter(@Param("date") LocalDateTime date);
+
     // ============================================================
-    // Поисковые методы с оптимизированными текстовыми запросами
+    // ПОИСКОВЫЕ МЕТОДЫ (оптимизированные текстовые запросы)
     // ============================================================
 
     /**
@@ -298,27 +274,24 @@ public interface UserRepository extends JpaRepository<User, Long> {
      * <ul>
      *   <li>Использует ILIKE для case-insensitive поиска</li>
      *   <li>Ограничивает количество результатов 50 записями</li>
-     *   <li>Таймаут запроса 20 секунд</li>
+     *   <li>Таймаут запроса 30 секунд</li>
      * </ul>
      *
-     * @param firstName часть имени
-     * @param lastName  часть фамилии
+     * @param searchQuery поисковый запрос (ищется в имени и фамилии)
      * @return список пользователей, у которых имя или фамилия содержат указанную строку
      */
     @Query(value = """
             SELECT u.*
             FROM users u
-            WHERE u.first_name ILIKE CONCAT('%', :firstName, '%')
-               OR u.last_name ILIKE CONCAT('%', :lastName, '%')
+            WHERE u.first_name ILIKE CONCAT('%', :searchQuery, '%')
+               OR u.last_name ILIKE CONCAT('%', :searchQuery, '%')
             LIMIT 50
             """, nativeQuery = true)
     @QueryHints(@QueryHint(name = "org.hibernate.timeout", value = "30"))
-    List<User> findByFirstNameContainingIgnoreCaseOrLastNameContainingIgnoreCase(
-            @Param("firstName") String firstName,
-            @Param("lastName") String lastName);
+    List<User> searchByFirstNameOrLastName(@Param("searchQuery") String searchQuery);
 
     // ============================================================
-    // Методы для работы с временными промежутками
+    // МЕТОДЫ ДЛЯ РАБОТЫ С ВРЕМЕННЫМИ ПРОМЕЖУТКАМИ
     // ============================================================
 
     /**
@@ -329,7 +302,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
      *   <li>Использует индекс idx_users_created_at</li>
      *   <li>Сортировка на уровне БД</li>
      *   <li>Ограничение количества результатов</li>
-     *   <li>Таймаут запроса 20 секунд</li>
+     *   <li>Таймаут запроса 30 секунд</li>
      * </ul>
      *
      * @param start начало промежутка
@@ -348,7 +321,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
     List<User> findUsersCreatedBetween(
             @Param("start") LocalDateTime start,
             @Param("end") LocalDateTime end,
-            @Param("limit") int limit);
+            @Param("limit") int limit
+    );
 
     /**
      * Находит всех активных пользователей с загрузкой ролей.
@@ -357,7 +331,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
      * <ul>
      *   <li>Использует JOIN FETCH для загрузки ролей одним запросом</li>
      *   <li>Ограничивает количество результатов (пагинация)</li>
-     *   <li>Таймаут запроса 30 секунд</li>
+     *   <li>Таймаут запроса 60 секунд</li>
      * </ul>
      *
      * @param limit максимальное количество результатов

@@ -16,7 +16,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.4.11</version>
+        <version>3.4.13</version>
         <relativePath/>
     </parent>
 
@@ -29,7 +29,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
         <!-- Spring и основные BOM -->
-        <spring-cloud.version>2024.0.3</spring-cloud.version>
+        <spring-cloud.version>2024.0.0</spring-cloud.version>
         <resilience4j.version>2.4.0</resilience4j.version>
 
         <!-- Безопасность и JWT -->
@@ -43,11 +43,10 @@
 
         <!-- Генерация кода -->
         <lombok.version>1.18.36</lombok.version>
-        <mapstruct.version>1.6.2</mapstruct.version>
 
         <!-- Валидация и тестовые утилиты -->
         <assertj.version>3.27.7</assertj.version>
-        <mockito.version>5.14.2</mockito.version>
+        <mockito.version>5.15.2</mockito.version>
         <awaitility.version>4.2.0</awaitility.version>
         <jakarta-validation.version>3.0.2</jakarta-validation.version>
         <hibernate-validator.version>9.1.0.Final</hibernate-validator.version>
@@ -296,19 +295,6 @@
                 <scope>provided</scope>
             </dependency>
 
-            <dependency>
-                <groupId>org.mapstruct</groupId>
-                <artifactId>mapstruct</artifactId>
-                <version>${mapstruct.version}</version>
-            </dependency>
-
-            <dependency>
-                <groupId>org.mapstruct</groupId>
-                <artifactId>mapstruct-processor</artifactId>
-                <version>${mapstruct.version}</version>
-                <scope>provided</scope>
-            </dependency>
-
             <!-- ====================================================
                  ВАЛИДАЦИЯ
                  ================================================= -->
@@ -322,7 +308,6 @@
                 <groupId>org.hibernate.validator</groupId>
                 <artifactId>hibernate-validator</artifactId>
                 <version>${hibernate-validator.version}</version>
-                <scope>test</scope>
             </dependency>
 
             <dependency>
@@ -353,7 +338,6 @@
                 <groupId>net.bytebuddy</groupId>
                 <artifactId>byte-buddy</artifactId>
                 <version>${byte-buddy.version}</version>
-                <scope>test</scope>
             </dependency>
 
             <dependency>
@@ -559,11 +543,6 @@
                                 <groupId>org.projectlombok</groupId>
                                 <artifactId>lombok</artifactId>
                                 <version>${lombok.version}</version>
-                            </path>
-                            <path>
-                                <groupId>org.mapstruct</groupId>
-                                <artifactId>mapstruct-processor</artifactId>
-                                <version>${mapstruct.version}</version>
                             </path>
                         </annotationProcessorPaths>
                         <compilerArgs>

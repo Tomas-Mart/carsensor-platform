@@ -3,23 +3,33 @@ spring:
     name: scheduler-service
   profiles:
     active: dev
+
   datasource:
-    url: jdbc:postgresql://localhost:5435/scheduler_db
-    username: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD:postgres}
-    driver-class-name: org.postgresql.Driver
     hikari:
-      maximum-pool-size: 5
-      minimum-idle: 2
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+      idleTimeout: 600000
+      maxLifetime: 1800000
+
   jpa:
     hibernate:
       ddl-auto: validate
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        jdbc:
+          batch_size: 20
+        order_inserts: true
+        order_updates: true
+    show-sql: false
+
   flyway:
     enabled: true
     baseline-on-migrate: true
+    locations: classpath:db/migration
+
   quartz:
     job-store-type: jdbc
     jdbc:
@@ -36,22 +46,34 @@ spring:
             tablePrefix: QRTZ_
             isClustered: true
             clusterCheckinInterval: 20000
+            misfireThreshold: 60000
           threadPool:
             class: org.quartz.simpl.SimpleThreadPool
             threadCount: 5
             threadPriority: 5
 
+  cache:
+    type: caffeine
+    caffeine:
+      spec: maximumSize=500, expireAfterAccess=600s
+
 server:
   port: 8083
 
-parser:
-  max-pages: ${PARSER_MAX_PAGES:5}
-  user-agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-  timeout: 30000
-  schedule: "0 0 * * * *"
+app:
+  jwt:
+    secret: ${JWT_SECRET:mySuperSecretKeyForJWTTokenGenerationThatMustBeAtLeast512BitsLongInProductionEnvironment2026}
+    access-token-expiration: ${JWT_ACCESS_EXPIRATION:900}
+    refresh-token-expiration: ${JWT_REFRESH_EXPIRATION:604800}
 
 car-service:
   url: ${CAR_SERVICE_URL:http://localhost:8082}
+
+parser:
+  max-pages: ${PARSER_MAX_PAGES:5}
+  user-agent: ${PARSER_USER_AGENT:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36}
+  timeout: ${PARSER_TIMEOUT:30000}
+  schedule: ${PARSER_SCHEDULE:0 0 * * * *}
 
 resilience4j:
   circuitbreaker:
@@ -61,11 +83,16 @@ resilience4j:
         failure-rate-threshold: 50
         wait-duration-in-open-state: 60s
         permitted-number-of-calls-in-half-open-state: 3
+        record-exceptions:
+          - java.lang.Exception
   retry:
     instances:
       carParser:
         max-attempts: 3
         wait-duration: 2s
+        retry-exceptions:
+          - java.io.IOException
+          - java.net.SocketTimeoutException
   timelimiter:
     instances:
       carParser:
@@ -76,6 +103,17 @@ management:
     web:
       exposure:
         include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    tags:
+      application: ${spring.application.name}
+    distribution:
+      percentiles-histogram:
+        http:
+          server:
+            requests: true
   prometheus:
     metrics:
       export:
@@ -84,8 +122,9 @@ management:
 logging:
   level:
     com.carsensor.scheduler: DEBUG
-    org.springframework.beans.factory: DEBUG
-    org.springframework.context: DEBUG
+    org.springframework.security: INFO
+    org.springframework.cache: INFO
+    org.quartz: INFO
 
 ---
 spring:
@@ -94,8 +133,12 @@ spring:
       on-profile: docker
   datasource:
     url: jdbc:postgresql://postgres-scheduler:5432/scheduler_db
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+
 car-service:
-  url: ${CAR_SERVICE_URL:https://car-service:8082}
+  url: ${CAR_SERVICE_URL:http://car-service:8082}
 
 ---
 spring:
@@ -103,30 +146,41 @@ spring:
     activate:
       on-profile: test
   datasource:
-    # Исправлено: вместо Testcontainers используем embedded-postgres
-    url: jdbc:postgresql://localhost:5432/testdb
-    driver-class-name: org.postgresql.Driver
-    username: postgres
-    password: postgres
+    url: jdbc:h2:mem:testdb;MODE=PostgreSQL;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      auto-commit: true
+      validation-timeout: 5000
+      leak-detection-threshold: 30000
   jpa:
     hibernate:
       ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.H2Dialect
+        jdbc:
+          batch_size: 20
+        order_inserts: true
+        order_updates: true
   flyway:
     enabled: false
   quartz:
-    job-store-type: jdbc
-    jdbc:
-      initialize-schema: always
+    job-store-type: memory
+
+car-service:
+  url: http://localhost:8082
 
 app:
   jwt:
-    secret: mySecretKeyForJWTTokenGenerationThatMustBeAtLeast512BitsLongInProductionEnvironment2026
+    secret: testSecretKeyForUnitTestsThatMustBeAtLeast512BitsLongForProperTesting2026
     access-token-expiration: 900
     refresh-token-expiration: 604800
-
-logging:
-  level:
-    com.carsensor: DEBUG
-    io.zonky.test.db.postgres: INFO
-    org.springframework.beans.factory: DEBUG
-    org.springframework.context: DEBUG

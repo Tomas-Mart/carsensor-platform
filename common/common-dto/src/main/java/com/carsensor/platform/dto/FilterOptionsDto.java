@@ -4,12 +4,10 @@ import java.math.BigDecimal;
 import java.util.List;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.Builder;
 
 /**
  * DTO для опций фильтрации
  */
-@Builder
 @Schema(description = "Доступные опции для фильтрации автомобилей")
 public record FilterOptionsDto(
         @Schema(description = "Список доступных марок",
@@ -49,4 +47,20 @@ public record FilterOptionsDto(
                 example = "[\"Белый\", \"Черный\", \"Серебристый\"]")
         List<String> colors
 ) {
+    // Компактный конструктор для нормализации
+    public FilterOptionsDto {
+        // Обеспечиваем, что списки не null
+        if (brands == null) {
+            brands = List.of();
+        }
+        if (transmissions == null) {
+            transmissions = List.of();
+        }
+        if (driveTypes == null) {
+            driveTypes = List.of();
+        }
+        if (colors == null) {
+            colors = List.of();
+        }
+    }
 }

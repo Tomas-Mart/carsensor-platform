@@ -218,24 +218,30 @@ public class CarSensorParser {
             // Описание
             String description = extractDescription(card);
 
-            return CarDto.builder()
-                    .brand(brand)
-                    .model(model)
-                    .year(year)
-                    .mileage(mileage)
-                    .price(price)
-                    .description(description)
-                    .originalBrand(title != null ? title : null)
-                    .exteriorColor(color)
-                    .transmission(transmission)
-                    .driveType(driveType)
-                    .engineCapacity(engineCapacity)
-                    .photoUrls(photoUrls)
-                    .mainPhotoUrl(photoUrls != null && !photoUrls.isEmpty() ? photoUrls.get(0) : null)
-                    .parsedAt(LocalDateTime.now())
-                    .sourceUrl(detailUrl)
-                    .build();
-
+            return new CarDto(
+                    null,                               // id
+                    brand,                              // brand
+                    model,                              // model
+                    year,                               // year
+                    mileage,                            // mileage
+                    price,                              // price
+                    description,                        // description
+                    title != null ? title : null,       // originalBrand
+                    null,                               // originalModel
+                    color,                              // exteriorColor
+                    null,                               // interiorColor
+                    engineCapacity,                     // engineCapacity
+                    transmission,                       // transmission
+                    driveType,                          // driveType
+                    photoUrls,                          // photoUrls
+                    photoUrls != null && !photoUrls.isEmpty() ? photoUrls.get(0) : null, // mainPhotoUrl
+                    null,                               // externalId
+                    detailUrl,                          // sourceUrl
+                    LocalDateTime.now(),                // parsedAt
+                    null,                               // createdAt
+                    null,                               // updatedAt
+                    null                                // version
+            );
         } catch (Exception e) {
             log.error("Error in parseCarCard: {}", e.getMessage());
             return null;

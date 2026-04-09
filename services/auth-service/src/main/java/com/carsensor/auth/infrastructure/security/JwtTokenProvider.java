@@ -254,6 +254,8 @@ public class JwtTokenProvider {
         var now = new Date();
         var expiryDate = new Date(now.getTime() + expiration * 1000L);
 
+        claims.putIfAbsent("is_active", true);
+
         return Jwts.builder()
                 .claims(claims)
                 .subject(subject)
@@ -350,7 +352,7 @@ public class JwtTokenProvider {
      */
     public boolean validateToken(String token) {
         if (token == null || token.isBlank()) {
-            throw new PlatformException.MissingTokenException("Токен отсутствует");
+            return false;
         }
 
         try {
@@ -360,20 +362,20 @@ public class JwtTokenProvider {
                     .parseSignedClaims(token);
             return true;
         } catch (SignatureException e) {
-            log.error("Invalid JWT signature: {}", e.getMessage());
-            throw new PlatformException.InvalidTokenFormatException("Неверная подпись токена");
+            log.debug("Invalid JWT signature: {}", e.getMessage());
+            return false;
         } catch (MalformedJwtException e) {
-            log.error("Invalid JWT token format: {}", e.getMessage());
-            throw new PlatformException.InvalidTokenFormatException("Неверный формат токена");
+            log.debug("Invalid JWT token format: {}", e.getMessage());
+            return false;
         } catch (ExpiredJwtException e) {
-            log.error("JWT token expired: {}", e.getMessage());
-            throw new PlatformException.TokenExpiredException("Срок действия токена истек");
+            log.debug("JWT token expired: {}", e.getMessage());
+            return false;
         } catch (UnsupportedJwtException e) {
-            log.error("Unsupported JWT token: {}", e.getMessage());
-            throw new PlatformException.InvalidTokenException("Неподдерживаемый тип токена");
+            log.debug("Unsupported JWT token: {}", e.getMessage());
+            return false;
         } catch (IllegalArgumentException e) {
-            log.error("JWT claims string is empty: {}", e.getMessage());
-            throw new PlatformException.MissingTokenException("Токен отсутствует");
+            log.debug("JWT claims string is empty: {}", e.getMessage());
+            return false;
         }
     }
 

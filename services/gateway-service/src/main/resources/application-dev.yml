@@ -1,0 +1,103 @@
+# Путь: /home/mina/projects/carsensor-platform/services/gateway-service/src/main/resources/application-dev.yml
+
+spring:
+  config:
+    activate:
+      on-profile: dev
+
+  cloud:
+    gateway:
+      enabled: true
+      discovery:
+        locator:
+          enabled: false
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOrigins: "http://localhost:3000"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+            allowedHeaders:
+              - Authorization
+              - Content-Type
+              - X-Requested-With
+            allowCredentials: true
+            maxAge: 3600
+      routes:
+        - id: auth-service
+          uri: ${services.auth.url:http://localhost:8081}
+          predicates:
+            - Path=/api/v1/auth/**
+        - id: car-service
+          uri: ${services.car.url:http://localhost:8082}
+          predicates:
+            - Path=/api/v1/cars/**
+        - id: auth-actuator
+          uri: ${services.auth.url:http://localhost:8081}
+          predicates:
+            - Path=/actuator/auth/**
+          filters:
+            - RewritePath=/actuator/auth/(?<segment>.*), /actuator/${segment}
+        - id: car-actuator
+          uri: ${services.car.url:http://localhost:8082}
+          predicates:
+            - Path=/actuator/car/**
+          filters:
+            - RewritePath=/actuator/car/(?<segment>.*), /actuator/${segment}
+        - id: auth-swagger
+          uri: ${services.auth.url:http://localhost:8081}
+          predicates:
+            - Path=/swagger/auth/**
+          filters:
+            - RewritePath=/swagger/auth/(?<segment>.*), /swagger-ui/${segment}
+        - id: car-swagger
+          uri: ${services.car.url:http://localhost:8082}
+          predicates:
+            - Path=/swagger/car/**
+          filters:
+            - RewritePath=/swagger/car/(?<segment>.*), /swagger-ui/${segment}
+
+  main:
+    web-application-type: reactive
+
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8081
+          jwk-set-uri: http://localhost:8081/.well-known/jwks.json
+
+server:
+  port: 8080
+
+services:
+  auth:
+    url: http://localhost:8081
+  car:
+    url: http://localhost:8082
+
+app:
+  jwt:
+    secret: mySuperSecretKeyForJWTTokenGenerationThatMustBeAtLeast512BitsLongInProductionEnvironment2026
+    access-token-expiration: 900
+    refresh-token-expiration: 604800
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,gateway
+  endpoint:
+    gateway:
+      enabled: true
+    health:
+      show-details: always
+
+logging:
+  level:
+    com.carsensor.gateway: DEBUG
+    org.springframework.cloud.gateway: INFO

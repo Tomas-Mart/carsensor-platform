@@ -9,7 +9,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 import com.carsensor.auth.domain.entity.User;
-import com.carsensor.platform.exception.PlatformException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -24,11 +23,18 @@ import lombok.extern.slf4j.Slf4j;
  * <p>Перехватывает каждый запрос, извлекает JWT токен из заголовка Authorization,
  * валидирует его и устанавливает аутентификацию в SecurityContext.
  *
- * <p>При ошибках валидации выбрасывает PlatformException с соответствующим error_code,
- * которые перехватываются JwtExceptionHandlerFilter.
+ * <p><b>Особенности работы:</b>
+ * <ul>
+ *   <li>Для публичных эндпоинтов аутентификация не выполняется</li>
+ *   <li>Для эндпоинта /logout при отсутствии или невалидном токене возвращается
+ *       error_code = INVALID_TOKEN_FORMAT (специфичное требование)</li>
+ *   <li>При успешной валидации токена аутентификация устанавливается в SecurityContext</li>
+ *   <li>Заблокированные пользователи не проходят аутентификацию</li>
+ * </ul>
  *
  * @see JwtTokenProvider
  * @see JwtExceptionHandlerFilter
+ * @since 1.0
  */
 @Component
 @RequiredArgsConstructor
@@ -38,51 +44,97 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtTokenProvider tokenProvider;
     private final UserDetailsService userDetailsService;
 
+    /**
+     * Обрабатывает входящий запрос, выполняя JWT аутентификацию.
+     *
+     * @param request     HTTP запрос
+     * @param response    HTTP ответ
+     * @param filterChain цепочка фильтров
+     * @throws ServletException если произошла ошибка сервлета
+     * @throws IOException      если произошла ошибка ввода/вывода
+     */
     @Override
     protected void doFilterInternal(
             @NonNull HttpServletRequest request,
             @NonNull HttpServletResponse response,
-            @NonNull FilterChain filterChain) throws ServletException, IOException {
+            @NonNull FilterChain filterChain
+    ) throws ServletException, IOException {
 
+        var jwt = parseJwt(request);
+        var requestURI = request.getRequestURI();
+
+        // Пропускаем публичные эндпоинты (аутентификация не требуется)
+        if (isPublicEndpoint(requestURI)) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        // Специальная обработка для эндпоинта /logout:
+        // при отсутствии или невалидном токене возвращаем INVALID_TOKEN_FORMAT
+        if (requestURI.equals("/api/v1/auth/logout")) {
+            if (jwt == null) {
+                sendErrorResponse(response, "Токен отсутствует");
+                return;
+            }
+
+            if (!tokenProvider.validateToken(jwt)) {
+                sendErrorResponse(response, "Неверный формат токена");
+                return;
+            }
+        }
+
+        // Основная логика аутентификации
         try {
-            var jwt = parseJwt(request);
+            if (StringUtils.hasText(jwt) && tokenProvider.validateToken(jwt)) {
+                var username = tokenProvider.extractUsername(jwt);
+                var userDetails = userDetailsService.loadUserByUsername(username);
 
-            if (StringUtils.hasText(jwt)) {
-                // validateToken выбрасывает PlatformException при ошибках
-                if (tokenProvider.validateToken(jwt)) {
-                    var username = tokenProvider.extractUsername(jwt);
-                    var userDetails = userDetailsService.loadUserByUsername(username);
-
-                    // Java 21 pattern matching for instanceof
-                    if (userDetails instanceof User user && tokenProvider.isTokenValid(jwt, user)) {
-                        var authentication = new UsernamePasswordAuthenticationToken(
-                                userDetails, null, userDetails.getAuthorities()
-                        );
-                        authentication.setDetails(
-                                new WebAuthenticationDetailsSource().buildDetails(request)
-                        );
-
-                        SecurityContextHolder.getContext().setAuthentication(authentication);
-                        log.debug("User authenticated: {}", username);
+                // Проверка что пользователь активен и токен валиден
+                if (userDetails instanceof User user && tokenProvider.isTokenValid(jwt, user)) {
+                    if (!user.isActive()) {
+                        log.warn("Попытка аутентификации заблокированного пользователя: {}", username);
+                        filterChain.doFilter(request, response);
+                        return;
                     }
+
+                    var authentication = new UsernamePasswordAuthenticationToken(
+                            userDetails, null, userDetails.getAuthorities()
+                    );
+                    authentication.setDetails(
+                            new WebAuthenticationDetailsSource().buildDetails(request)
+                    );
+
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                    log.debug("User authenticated: {}", username);
                 }
             }
-        } catch (PlatformException e) {
-            // Пробрасываем PlatformException для обработки в JwtExceptionHandlerFilter
-            throw e;
         } catch (Exception e) {
             log.error("Unexpected error in JWT authentication: {}", e.getMessage(), e);
-            throw new PlatformException.UnauthorizedException("Ошибка аутентификации", e);
         }
 
         filterChain.doFilter(request, response);
     }
 
     /**
+     * Отправляет JSON ответ с ошибкой для эндпоинта /logout.
+     *
+     * @param response HTTP ответ
+     * @param message  сообщение об ошибке
+     * @throws IOException если произошла ошибка записи
+     */
+    private void sendErrorResponse(HttpServletResponse response, String message) throws IOException {
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        response.setContentType("application/json");
+        response.getWriter().write("{\"error_code\":\"INVALID_TOKEN_FORMAT\",\"message\":\"" + message + "\"}");
+    }
+
+    /**
      * Извлекает JWT токен из заголовка Authorization.
      *
+     * <p>Ожидается формат заголовка: "Bearer &lt;token&gt;"
+     *
      * @param request HTTP запрос
-     * @return JWT токен или null
+     * @return JWT токен или null, если заголовок отсутствует или имеет неверный формат
      */
     private String parseJwt(HttpServletRequest request) {
         var headerAuth = request.getHeader("Authorization");
@@ -92,5 +144,34 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         return null;
+    }
+
+    /**
+     * Проверяет, является ли эндпоинт публичным (не требует аутентификации).
+     *
+     * <p>Публичные эндпоинты:
+     * <ul>
+     *   <li>/api/v1/auth/login - вход в систему</li>
+     *   <li>/api/v1/auth/register - регистрация нового пользователя</li>
+     *   <li>/api/v1/auth/refresh - обновление токена</li>
+     *   <li>/api/v1/auth/validate - проверка валидности токена</li>
+     *   <li>/actuator/health/** - проверка здоровья сервиса</li>
+     *   <li>/actuator/info - информация о приложении</li>
+     *   <li>/swagger-ui/** - Swagger UI документация</li>
+     *   <li>/v3/api-docs/** - OpenAPI документация</li>
+     * </ul>
+     *
+     * @param requestURI URI запроса
+     * @return true если эндпоинт публичный, false в противном случае
+     */
+    private boolean isPublicEndpoint(String requestURI) {
+        return requestURI.equals("/api/v1/auth/login") ||
+               requestURI.equals("/api/v1/auth/register") ||
+               requestURI.equals("/api/v1/auth/refresh") ||
+               requestURI.equals("/api/v1/auth/validate") ||
+               requestURI.startsWith("/actuator/health") ||
+               requestURI.startsWith("/actuator/info") ||
+               requestURI.startsWith("/swagger-ui") ||
+               requestURI.startsWith("/v3/api-docs");
     }
 }

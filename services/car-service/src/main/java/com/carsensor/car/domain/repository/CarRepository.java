@@ -133,6 +133,51 @@ public interface CarRepository extends JpaRepository<Car, Long>, JpaSpecificatio
             """)
     long countByBrandAndModel(@Param("brand") String brand, @Param("model") String model);
 
+    /**
+     * Подсчитывает количество автомобилей, имеющих фотографии.
+     *
+     * @return количество автомобилей с фотографиями
+     */
+    @Query(value = """
+            SELECT COUNT(*)
+            FROM cars
+            WHERE photo_urls IS NOT NULL
+            """, nativeQuery = true)
+    long countCarsWithPhotos();
+
+    /**
+     * Получает среднюю цену всех автомобилей.
+     *
+     * @return средняя цена или null если автомобилей нет
+     */
+    @Query("""
+            SELECT AVG(c.price)
+            FROM Car c
+            """)
+    Double getAveragePrice();
+
+    /**
+     * Получает средний пробег всех автомобилей.
+     *
+     * @return средний пробег или null если автомобилей нет
+     */
+    @Query("""
+            SELECT AVG(c.mileage)
+            FROM Car c
+            """)
+    Double getAverageMileage();
+
+    /**
+     * Получает максимальную дату парсинга автомобилей.
+     *
+     * @return максимальная дата парсинга или пустой Optional
+     */
+    @Query("""
+            SELECT MAX(c.parsedAt)
+            FROM Car c
+            """)
+    Optional<LocalDateTime> findMaxParsedAt();
+
     // ============================================================
     // Поиск по дате парсинга
     // ============================================================

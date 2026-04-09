@@ -36,24 +36,31 @@ INSERT INTO users (
     first_name,
     last_name,
     is_active,
+    is_locked,
+    failed_attempts,
+    lock_time,
     created_at,
     updated_at,
     version
 ) VALUES (
     'admin',
-    'admin@test.com',
+    'admin@carsensor.local',
     '$2a$12$39aOe7AKc.qVz8zmHvfv9elb0n/h/AOuis6lvfuuMW1Fi6csFsAX.',
     'Admin',
     'User',
     true,
+    false,
+    0,
+    NULL,
     NOW(),
     NOW(),
     0
 ) ON CONFLICT (username) DO UPDATE SET
     password = EXCLUDED.password,
     is_active = true,
+    is_locked = false,
+    failed_attempts = 0,
     updated_at = NOW();
-
 -- Назначение роли ADMIN пользователю admin
 INSERT INTO user_roles (user_id, role_id)
 SELECT u.id, r.id FROM users u, roles r

@@ -27,4 +27,13 @@ public record LoginRequest(
                 format = "password")
         String password
 ) {
+    // Компактный конструктор для нормализации
+    public LoginRequest {
+        if (username != null) {
+            username = username.trim().toLowerCase();
+        }
+        if (password != null) {
+            password = password.trim();
+        }
+    }
 }

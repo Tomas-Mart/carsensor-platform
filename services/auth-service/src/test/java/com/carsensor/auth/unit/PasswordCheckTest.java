@@ -208,8 +208,13 @@ public class PasswordCheckTest extends AbstractIntegrationTest {
             var url = AbstractIntegrationTest.getDatabaseUrl();
             log.info("Database URL: {}", url);
 
+            @SuppressWarnings("SqlNoDataSourceInspection")
             Integer userCount = jdbcTemplate.queryForObject(
-                    "SELECT COUNT(*) FROM users WHERE username = ?",
+                    """
+                            SELECT COUNT(*)
+                            FROM users
+                            WHERE username = ?
+                            """,
                     Integer.class,
                     TEST_USERNAME
             );
@@ -219,8 +224,13 @@ public class PasswordCheckTest extends AbstractIntegrationTest {
             log.info("Users in database: {}", actualCount);
 
             if (actualCount > 0) {
+                @SuppressWarnings("SqlNoDataSourceInspection")
                 String passwordHash = jdbcTemplate.queryForObject(
-                        "SELECT password FROM users WHERE username = ?",
+                        """
+                                SELECT password
+                                FROM users
+                                WHERE username = ?
+                                """,
                         String.class,
                         TEST_USERNAME
                 );
@@ -434,8 +444,13 @@ public class PasswordCheckTest extends AbstractIntegrationTest {
 
         // Диагностика состояния базы данных
         try {
+            @SuppressWarnings("SqlNoDataSourceInspection")
             Integer count = jdbcTemplate.queryForObject(
-                    "SELECT COUNT(*) FROM users WHERE username = ?",
+                    """
+                            SELECT COUNT(*)
+                            FROM users
+                            WHERE username = ?
+                            """,
                     Integer.class,
                     TEST_USERNAME
             );

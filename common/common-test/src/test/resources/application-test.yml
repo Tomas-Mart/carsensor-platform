@@ -60,7 +60,7 @@ server:
 
 app:
   jwt:
-    secret: mySecretKeyForJWTTokenGenerationThatMustBeAtLeast512BitsLongInProductionEnvironment2026
+    secret: mySuperSecretKeyForJWTTokenGenerationThatMustBeAtLeast512BitsLongInProductionEnvironment2026
     access-token-expiration: 3600
     refresh-token-expiration: 86400
 

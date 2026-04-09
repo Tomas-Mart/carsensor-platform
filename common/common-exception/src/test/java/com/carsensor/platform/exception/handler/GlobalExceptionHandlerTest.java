@@ -1,21 +1,14 @@
 package com.carsensor.platform.exception.handler;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ProblemDetail;
-import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.validation.BindingResult;
-import org.springframework.validation.FieldError;
-import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.context.request.WebRequest;
 import com.carsensor.platform.exception.PlatformException;
 
@@ -24,10 +17,20 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
- * Тесты для GlobalExceptionHandler
- * Покрытие: 95% методов
+ * Тесты для GlobalExceptionHandler.
+ *
+ * <p><b>Проверяемые аспекты:</b>
+ * <ul>
+ *   <li>Обработка всех типов PlatformException</li>
+ *   <li>Формирование ProblemDetail согласно RFC 7807</li>
+ *   <li>Логирование информации о запросе</li>
+ * </ul>
+ *
+ * @see GlobalExceptionHandler
+ * @since 1.0
  */
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 @DisplayName("Тесты глобального обработчика ошибок")
 class GlobalExceptionHandlerTest {
 
@@ -38,115 +41,297 @@ class GlobalExceptionHandlerTest {
     void setUp() {
         exceptionHandler = new GlobalExceptionHandler();
         webRequest = mock(WebRequest.class);
+        when(webRequest.getDescription(false)).thenReturn("uri=/api/v1/users");
+        when(webRequest.getContextPath()).thenReturn("");
     }
 
-    @Test
-    @DisplayName("Обработка CarNotFoundException")
-    void handleCarNotFoundException_Returns404WithDetails() {
-        // Arrange
-        var exception = new PlatformException.CarNotFoundException(123L);
+    // ============================================================
+    // ТЕСТЫ ОБРАБОТКИ ИСКЛЮЧЕНИЙ (404)
+    // ============================================================
 
-        // Act
-        ProblemDetail problemDetail = exceptionHandler.handlePlatformException(exception, webRequest);
+    @Nested
+    @DisplayName("Обработка 404 Not Found исключений")
+    class NotFoundExceptionTests {
 
-        // Assert
-        assertThat(problemDetail.getStatus()).isEqualTo(HttpStatus.NOT_FOUND.value());
-        assertThat(problemDetail.getDetail()).isEqualTo("Автомобиль с идентификатором 123 не найден");
-        assertThat(problemDetail.getProperties()).containsKey("error_code");
-        assertThat(Objects.requireNonNull(Objects.requireNonNull(problemDetail.getProperties())).get("error_code")).isEqualTo("CAR_NOT_FOUND");
+        @Test
+        @DisplayName("✅ CarNotFoundException возвращает 404 с деталями")
+        void handleCarNotFoundException_Returns404WithDetails() {
+            // given
+            var exception = new PlatformException.CarNotFoundException(123L);
+
+            // when
+            var problemDetail = exceptionHandler.handlePlatformException(exception, webRequest);
+
+            // then
+            assertThat(problemDetail.getStatus()).isEqualTo(HttpStatus.NOT_FOUND.value());
+            assertThat(problemDetail.getDetail()).isEqualTo("Автомобиль с идентификатором 123 не найден");
+            assertThat(problemDetail.getProperties())
+                    .containsEntry("error_code", "CAR_NOT_FOUND")
+                    .containsKey("timestamp")
+                    .containsKey("path");
+        }
+
+        @Test
+        @DisplayName("✅ UserNotFoundException возвращает 404 с деталями")
+        void handleUserNotFoundException_Returns404WithDetails() {
+            // given
+            var exception = new PlatformException.UserNotFoundException("admin");
+
+            // when
+            var problemDetail = exceptionHandler.handlePlatformException(exception, webRequest);
+
+            // then
+            assertThat(problemDetail.getStatus()).isEqualTo(HttpStatus.NOT_FOUND.value());
+            assertThat(problemDetail.getDetail()).isEqualTo("Пользователь не найден");
+            assertThat(problemDetail.getProperties()).containsEntry("error_code", "USER_NOT_FOUND");
+        }
     }
 
-    @Test
-    @DisplayName("Обработка InvalidCredentialsException")
-    void handleInvalidCredentialsException_Returns401WithDetails() {
-        // Arrange
-        var exception = new PlatformException.InvalidCredentialsException();
+    // ============================================================
+    // ТЕСТЫ ОБРАБОТКИ ИСКЛЮЧЕНИЙ (400)
+    // ============================================================
 
-        // Act
-        ProblemDetail problemDetail = exceptionHandler.handlePlatformException(exception, webRequest);
+    @Nested
+    @DisplayName("Обработка 400 Bad Request исключений")
+    class BadRequestExceptionTests {
 
-        // Assert
-        assertThat(problemDetail.getStatus()).isEqualTo(HttpStatus.UNAUTHORIZED.value());
-        assertThat(problemDetail.getDetail()).isEqualTo("Неверный логин или пароль");
-        assertThat(Objects.requireNonNull(problemDetail.getProperties()).get("error_code")).isEqualTo("INVALID_CREDENTIALS");
+        @Test
+        @DisplayName("✅ ValidationException возвращает 400 с деталями")
+        void handleValidationException_Returns400WithDetails() {
+            // given
+            var exception = new PlatformException.ValidationException("Некорректный email");
+
+            // when
+            var problemDetail = exceptionHandler.handlePlatformException(exception, webRequest);
+
+            // then
+            assertThat(problemDetail.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST.value());
+            assertThat(problemDetail.getDetail()).isEqualTo("Некорректный email");
+            assertThat(problemDetail.getProperties()).containsEntry("error_code", "VALIDATION_ERROR");
+        }
     }
 
-    @Test
-    @DisplayName("Обработка AccessDeniedException")
-    void handleAccessDeniedException_Returns403WithDetails() {
-        // Arrange
-        var exception = new AccessDeniedException("Access denied");
+    // ============================================================
+    // ТЕСТЫ ОБРАБОТКИ ИСКЛЮЧЕНИЙ (401)
+    // ============================================================
 
-        // Act
-        ProblemDetail problemDetail = exceptionHandler.handleAccessDeniedException(exception);
+    @Nested
+    @DisplayName("Обработка 401 Unauthorized исключений")
+    class UnauthorizedExceptionTests {
 
-        // Assert
-        assertThat(problemDetail.getStatus()).isEqualTo(HttpStatus.FORBIDDEN.value());
-        assertThat(problemDetail.getDetail()).isEqualTo("У вас нет прав для выполнения этого действия");
-        assertThat(Objects.requireNonNull(problemDetail.getProperties()).get("error_code")).isEqualTo("ACCESS_DENIED");
+        @Test
+        @DisplayName("✅ InvalidCredentialsException возвращает 401 с деталями")
+        void handleInvalidCredentialsException_Returns401WithDetails() {
+            // given
+            var exception = new PlatformException.InvalidCredentialsException();
+
+            // when
+            var problemDetail = exceptionHandler.handlePlatformException(exception, webRequest);
+
+            // then
+            assertThat(problemDetail.getStatus()).isEqualTo(HttpStatus.UNAUTHORIZED.value());
+            assertThat(problemDetail.getDetail()).isEqualTo("Неверный логин или пароль");
+            assertThat(problemDetail.getProperties()).containsEntry("error_code", "INVALID_CREDENTIALS");
+        }
+
+        @Test
+        @DisplayName("✅ MissingTokenException возвращает 401 с деталями")
+        void handleMissingTokenException_Returns401WithDetails() {
+            // given
+            var exception = new PlatformException.MissingTokenException("Токен отсутствует");
+
+            // when
+            var problemDetail = exceptionHandler.handlePlatformException(exception, webRequest);
+
+            // then
+            assertThat(problemDetail.getStatus()).isEqualTo(HttpStatus.UNAUTHORIZED.value());
+            assertThat(problemDetail.getProperties()).containsEntry("error_code", "MISSING_TOKEN");
+        }
+
+        @Test
+        @DisplayName("✅ InvalidTokenFormatException возвращает 401 с деталями")
+        void handleInvalidTokenFormatException_Returns401WithDetails() {
+            // given
+            var exception = new PlatformException.InvalidTokenFormatException("Неверный формат токена");
+
+            // when
+            var problemDetail = exceptionHandler.handlePlatformException(exception, webRequest);
+
+            // then
+            assertThat(problemDetail.getStatus()).isEqualTo(HttpStatus.UNAUTHORIZED.value());
+            assertThat(problemDetail.getProperties()).containsEntry("error_code", "INVALID_TOKEN_FORMAT");
+        }
+
+        @Test
+        @DisplayName("✅ InvalidTokenException возвращает 401 с деталями")
+        void handleInvalidTokenException_Returns401WithDetails() {
+            // given
+            var exception = new PlatformException.InvalidTokenException("Невалидный токен");
+
+            // when
+            var problemDetail = exceptionHandler.handlePlatformException(exception, webRequest);
+
+            // then
+            assertThat(problemDetail.getStatus()).isEqualTo(HttpStatus.UNAUTHORIZED.value());
+            assertThat(problemDetail.getProperties()).containsEntry("error_code", "INVALID_TOKEN");
+        }
+
+        @Test
+        @DisplayName("✅ TokenExpiredException возвращает 401 с деталями")
+        void handleTokenExpiredException_Returns401WithDetails() {
+            // given
+            var exception = new PlatformException.TokenExpiredException("Токен истек");
+
+            // when
+            var problemDetail = exceptionHandler.handlePlatformException(exception, webRequest);
+
+            // then
+            assertThat(problemDetail.getStatus()).isEqualTo(HttpStatus.UNAUTHORIZED.value());
+            assertThat(problemDetail.getProperties()).containsEntry("error_code", "TOKEN_EXPIRED");
+        }
+
+        @Test
+        @DisplayName("✅ UnauthorizedException возвращает 401 с деталями")
+        void handleUnauthorizedException_Returns401WithDetails() {
+            // given
+            var exception = new PlatformException.UnauthorizedException("Неавторизованный доступ");
+
+            // when
+            var problemDetail = exceptionHandler.handlePlatformException(exception, webRequest);
+
+            // then
+            assertThat(problemDetail.getStatus()).isEqualTo(HttpStatus.UNAUTHORIZED.value());
+            assertThat(problemDetail.getProperties()).containsEntry("error_code", "UNAUTHORIZED");
+        }
     }
 
-    @Test
-    @DisplayName("Обработка BadCredentialsException")
-    void handleBadCredentialsException_Returns401WithDetails() {
-        // Arrange
-        var exception = new BadCredentialsException("Bad credentials");
+    // ============================================================
+    // ТЕСТЫ ОБРАБОТКИ ИСКЛЮЧЕНИЙ (403)
+    // ============================================================
 
-        // Act
-        ProblemDetail problemDetail = exceptionHandler.handleBadCredentialsException(exception);
+    @Nested
+    @DisplayName("Обработка 403 Forbidden исключений")
+    class ForbiddenExceptionTests {
 
-        // Assert
-        assertThat(problemDetail.getStatus()).isEqualTo(HttpStatus.UNAUTHORIZED.value());
-        assertThat(problemDetail.getDetail()).isEqualTo("Неверный логин или пароль");
-        assertThat(Objects.requireNonNull(problemDetail.getProperties()).get("error_code")).isEqualTo("INVALID_CREDENTIALS");
+        @Test
+        @DisplayName("✅ AccessDeniedException возвращает 403 с деталями")
+        void handleAccessDeniedException_Returns403WithDetails() {
+            // given
+            var exception = new PlatformException.AccessDeniedException("user", "ROLE_ADMIN");
+
+            // when
+            var problemDetail = exceptionHandler.handlePlatformException(exception, webRequest);
+
+            // then
+            assertThat(problemDetail.getStatus()).isEqualTo(HttpStatus.FORBIDDEN.value());
+            assertThat(problemDetail.getDetail()).isEqualTo("У вас нет прав для выполнения этого действия");
+            assertThat(problemDetail.getProperties()).containsEntry("error_code", "ACCESS_DENIED");
+        }
+
+        @Test
+        @DisplayName("✅ UserBlockedException возвращает 403 с деталями")
+        void handleUserBlockedException_Returns403WithDetails() {
+            // given
+            var exception = new PlatformException.UserBlockedException("admin");
+
+            // when
+            var problemDetail = exceptionHandler.handlePlatformException(exception, webRequest);
+
+            // then
+            assertThat(problemDetail.getStatus()).isEqualTo(HttpStatus.FORBIDDEN.value());
+            assertThat(problemDetail.getDetail()).isEqualTo("Учетная запись заблокирована");
+            assertThat(problemDetail.getProperties()).containsEntry("error_code", "USER_BLOCKED");
+        }
     }
 
-    @Test
-    @DisplayName("Обработка MethodArgumentNotValidException")
-    void handleValidationExceptions_Returns400WithFieldErrors() {
-        // Arrange
-        MethodArgumentNotValidException exception = mock(MethodArgumentNotValidException.class);
-        BindingResult bindingResult = mock(BindingResult.class);
+    // ============================================================
+    // ТЕСТЫ ОБРАБОТКИ ИСКЛЮЧЕНИЙ (409)
+    // ============================================================
 
-        List<FieldError> fieldErrors = List.of(
-                new FieldError("car", "brand", "Марка обязательна"),
-                new FieldError("car", "price", "Цена должна быть положительной")
-        );
+    @Nested
+    @DisplayName("Обработка 409 Conflict исключений")
+    class ConflictExceptionTests {
 
-        when(exception.getBindingResult()).thenReturn(bindingResult);
-        when(bindingResult.getAllErrors()).thenReturn(fieldErrors.stream()
-                .map(error -> (org.springframework.validation.ObjectError) error)
-                .collect(Collectors.toList()));
+        @Test
+        @DisplayName("✅ DuplicateResourceException возвращает 409 с деталями")
+        void handleDuplicateResourceException_Returns409WithDetails() {
+            // given
+            var exception = new PlatformException.DuplicateResourceException("User", "username: admin");
 
-        // Act
-        ProblemDetail problemDetail = exceptionHandler.handleValidationExceptions(exception);
+            // when
+            var problemDetail = exceptionHandler.handlePlatformException(exception, webRequest);
 
-        // Assert
-        assertThat(problemDetail.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST.value());
-        assertThat(problemDetail.getDetail()).isEqualTo("Ошибка валидации входных данных");
+            // then
+            assertThat(problemDetail.getStatus()).isEqualTo(HttpStatus.CONFLICT.value());
+            assertThat(problemDetail.getDetail()).isEqualTo("User с такими данными уже существует");
+            assertThat(problemDetail.getProperties()).containsEntry("error_code", "DUPLICATE_RESOURCE");
+        }
 
-        Object fieldErrorsObj = Objects.requireNonNull(problemDetail.getProperties()).get("field_errors");
-        assertThat(fieldErrorsObj).isInstanceOf(Map.class);
+        @Test
+        @DisplayName("✅ OptimisticLockException возвращает 409 с деталями")
+        void handleOptimisticLockException_Returns409WithDetails() {
+            // given
+            var exception = new PlatformException.OptimisticLockException("User", 1L, 1L, 2L);
 
-        @SuppressWarnings("unchecked")
-        Map<String, String> fieldErrorsMap = (Map<String, String>) Objects.requireNonNull(fieldErrorsObj);
+            // when
+            var problemDetail = exceptionHandler.handlePlatformException(exception, webRequest);
 
-        assertThat(fieldErrorsMap).containsEntry("brand", "Марка обязательна");
-        assertThat(fieldErrorsMap).containsEntry("price", "Цена должна быть положительной");
+            // then
+            assertThat(problemDetail.getStatus()).isEqualTo(HttpStatus.CONFLICT.value());
+            assertThat(problemDetail.getDetail()).isEqualTo(
+                    "Данные были изменены другим пользователем. Пожалуйста, обновите страницу и попробуйте снова.");
+            assertThat(problemDetail.getProperties()).containsEntry("error_code", "OPTIMISTIC_LOCK");
+        }
     }
 
-    @Test
-    @DisplayName("Обработка непредвиденного исключения")
-    void handleGenericException_Returns500WithGenericMessage() {
-        // Arrange
-        var exception = new RuntimeException("Database connection failed");
+    // ============================================================
+    // ТЕСТЫ ОБРАБОТКИ ИСКЛЮЧЕНИЙ (500)
+    // ============================================================
 
-        // Act
-        ProblemDetail problemDetail = exceptionHandler.handleGenericException(exception, webRequest);
+    @Nested
+    @DisplayName("Обработка 500 Internal Server Error исключений")
+    class InternalServerErrorTests {
 
-        // Assert
-        assertThat(problemDetail.getStatus()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR.value());
-        assertThat(problemDetail.getDetail()).isEqualTo("Внутренняя ошибка сервера");
-        assertThat(Objects.requireNonNull(problemDetail.getProperties()).get("error_code")).isEqualTo("INTERNAL_ERROR");
+        @Test
+        @DisplayName("✅ ParsingException возвращает 500 с деталями")
+        void handleParsingException_Returns500WithDetails() {
+            // given
+            var exception = new PlatformException.ParsingException("https://example.com", new RuntimeException());
+
+            // when
+            var problemDetail = exceptionHandler.handlePlatformException(exception, webRequest);
+
+            // then
+            assertThat(problemDetail.getStatus()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR.value());
+            assertThat(problemDetail.getDetail()).isEqualTo("Ошибка при парсинге данных с сайта");
+            assertThat(problemDetail.getProperties()).containsEntry("error_code", "PARSING_ERROR");
+        }
+    }
+
+    // ============================================================
+    // ТЕСТЫ ОБЩЕГО ОБРАБОТЧИКА
+    // ============================================================
+
+    @Nested
+    @DisplayName("Общий обработчик Exception")
+    class GenericExceptionTests {
+
+        @Test
+        @DisplayName("✅ Непредвиденное исключение возвращает 500 с общим сообщением")
+        void handleGenericException_Returns500WithGenericMessage() {
+            // given
+            var exception = new RuntimeException("Database connection failed");
+
+            // when
+            var problemDetail = exceptionHandler.handleGenericException(exception, webRequest);
+
+            // then
+            assertThat(problemDetail.getStatus()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR.value());
+            assertThat(problemDetail.getDetail()).isEqualTo("Внутренняя ошибка сервера");
+            assertThat(problemDetail.getProperties())
+                    .containsEntry("error_code", "INTERNAL_ERROR")
+                    .containsKey("timestamp")
+                    .containsKey("path");
+        }
     }
 }

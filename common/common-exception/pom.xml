@@ -4,6 +4,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 
          http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+
     <parent>
         <groupId>com.carsensor.platform</groupId>
         <artifactId>carsensor-platform</artifactId>
@@ -14,30 +15,23 @@
     <artifactId>common-exception</artifactId>
     <packaging>jar</packaging>
 
+    <description>Общий модуль для обработки исключений платформы</description>
+
+    <!-- ============================================================
+         ЗАВИСИМОСТИ
+         ============================================================ -->
     <dependencies>
-        <!-- Spring Boot Web - для @RestControllerAdvice -->
+        <!-- Spring Boot Web - для @RestControllerAdvice, ProblemDetail, HttpStatus -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
-        <!-- Spring Security - для обработки исключений безопасности -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-security</artifactId>
-        </dependency>
-
-        <!-- Lombok - для @Slf4j, @Data в DTO ошибок -->
+        <!-- Lombok - для @Slf4j, @Getter -->
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <optional>true</optional>
-        </dependency>
-
-        <!-- Validation API - для ошибок валидации -->
-        <dependency>
-            <groupId>jakarta.validation</groupId>
-            <artifactId>jakarta.validation-api</artifactId>
         </dependency>
 
         <!-- Тестовые зависимости -->
@@ -48,6 +42,9 @@
         </dependency>
     </dependencies>
 
+    <!-- ============================================================
+         СБОРКА
+         ============================================================ -->
     <build>
         <plugins>
             <plugin>
@@ -56,4 +53,5 @@
             </plugin>
         </plugins>
     </build>
+
 </project>

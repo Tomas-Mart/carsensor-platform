@@ -1,16 +1,16 @@
 package com.carsensor.platform.dto;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
-import lombok.Builder;
 
 /**
  * DTO для роли
  */
-@Builder
 @Schema(description = "Роль пользователя")
 public record RoleDto(
         @Schema(description = "ID роли",
@@ -36,6 +36,50 @@ public record RoleDto(
         @JsonProperty("permissions")
         @Schema(description = "Список разрешений, связанных с ролью",
                 example = "[\"CAR_VIEW\", \"CAR_EDIT\", \"USER_MANAGE\"]")
-        List<String> permissions
+        List<String> permissions,
+
+        @JsonProperty("created_at")
+        @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+        @Schema(description = "Дата создания",
+                example = "2026-03-29 12:00:00",
+                accessMode = Schema.AccessMode.READ_ONLY)
+        LocalDateTime createdAt,
+
+        @JsonProperty("updated_at")
+        @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+        @Schema(description = "Дата обновления",
+                example = "2026-03-29 12:00:00",
+                accessMode = Schema.AccessMode.READ_ONLY)
+        LocalDateTime updatedAt,
+
+        @Schema(description = "Версия для оптимистичной блокировки",
+                example = "0",
+                accessMode = Schema.AccessMode.READ_ONLY)
+        Long version
 ) {
+    // Компактный конструктор для нормализации
+    public RoleDto {
+        if (name != null) {
+            name = name.trim().toUpperCase();
+            if (!name.startsWith("ROLE_")) {
+                name = "ROLE_" + name;
+            }
+        }
+        if (description != null) {
+            description = description.trim();
+        }
+        if (permissions == null) {
+            permissions = List.of();
+        }
+    }
+
+    // Фабричный метод для создания простой роли
+    public static RoleDto of(String name, String description) {
+        return new RoleDto(null, name, description, List.of(), null, null, null);
+    }
+
+    // Фабричный метод для создания роли с разрешениями
+    public static RoleDto of(String name, String description, List<String> permissions) {
+        return new RoleDto(null, name, description, permissions, null, null, null);
+    }
 }

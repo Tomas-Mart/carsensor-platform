@@ -37,7 +37,7 @@ spring:
 
 app:
   jwt:
-    secret: mySecretKeyForJWTTokenGenerationThatMustBeAtLeast512BitsLongInProductionEnvironment2026
+    secret: mySuperSecretKeyForJWTTokenGenerationThatMustBeAtLeast512BitsLongInProductionEnvironment2026
     access-token-expiration: 900
     refresh-token-expiration: 604800
 

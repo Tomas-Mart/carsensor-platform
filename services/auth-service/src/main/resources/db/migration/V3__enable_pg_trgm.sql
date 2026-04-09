@@ -1,8 +1,6 @@
 -- ============================================================
 -- Миграция для включения полнотекстового поиска
 -- ============================================================
--- Внимание: Эта миграция опциональна и выполняется только в production
--- Для тестов используется упрощенная схема без pg_trgm
 
 -- Включаем расширение pg_trgm для триграммного поиска
 -- Это расширение позволяет использовать операторы % (схожесть) и LIKE с индексами
@@ -20,22 +18,21 @@ END $$;
 
 -- Создаем GIN индексы для полнотекстового поиска по имени и фамилии
 -- GIN (Generalized Inverted Index) оптимизирован для поиска по триграммам
--- Используем CONCURRENTLY чтобы не блокировать таблицу
 
 -- Индекс для поиска по имени
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_users_first_name_trgm
+CREATE INDEX IF NOT EXISTS idx_users_first_name_trgm
     ON users USING GIN (first_name gin_trgm_ops);
 
 -- Индекс для поиска по фамилии
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_users_last_name_trgm
+CREATE INDEX IF NOT EXISTS idx_users_last_name_trgm
     ON users USING GIN (last_name gin_trgm_ops);
 
 -- Комбинированный индекс для поиска по полному имени (имя + пробел + фамилия)
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_users_full_name_trgm
+CREATE INDEX IF NOT EXISTS idx_users_full_name_trgm
     ON users USING GIN ((first_name || ' ' || last_name) gin_trgm_ops);
 
 -- Индекс для поиска по email (частичное совпадение)
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_users_email_trgm
+CREATE INDEX IF NOT EXISTS idx_users_email_trgm
     ON users USING GIN (email gin_trgm_ops);
 
 -- ============================================================

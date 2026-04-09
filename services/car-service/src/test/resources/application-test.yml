@@ -1,21 +1,4 @@
 spring:
-  datasource:
-    url: jdbc:postgresql://localhost:5432/postgres
-    driver-class-name: org.postgresql.Driver
-    username: postgres
-    password: postgres
-    hikari:
-      auto-commit: true
-      connection-timeout: 30000
-      maximum-pool-size: 10
-      minimum-idle: 5
-      idle-timeout: 600000
-      max-lifetime: 1800000
-      leak-detection-threshold: 60000
-      validation-timeout: 5000
-      connection-test-query: SELECT 1
-      register-mbeans: false
-
   jpa:
     open-in-view: false
     hibernate:
@@ -36,10 +19,24 @@ spring:
         cache:
           use_second_level_cache: false
           use_query_cache: false
+        # Исправление deprecated настроек
         jakarta:
           persistence:
             query:
               timeout: 60000
+
+  datasource:
+    hikari:
+      auto-commit: true
+      connection-timeout: 30000
+      maximum-pool-size: 10
+      minimum-idle: 5
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      leak-detection-threshold: 60000
+      validation-timeout: 5000
+      connection-test-query: SELECT 1
+      register-mbeans: false
 
   flyway:
     enabled: false
@@ -48,11 +45,26 @@ spring:
     init:
       mode: never
 
+app:
+  jwt:
+    secret: ${JWT_SECRET:mySuperSecretKeyForJWTTokenGenerationThatMustBeAtLeast512BitsLongInProductionEnvironment2026}
+    access-token-expiration: 3600
+    refresh-token-expiration: 86400
+
 logging:
   level:
     com.carsensor: DEBUG
+    org.springframework.security: DEBUG
+    org.springframework.transaction: INFO
     org.hibernate.SQL: DEBUG
     org.hibernate.engine.transaction: DEBUG
-    org.springframework.transaction: INFO
     org.springframework.jdbc.datasource.init: DEBUG
+    org.springframework.test.context.jdbc: DEBUG
     io.zonky.test.db.postgres: WARN
+    com.carsensor.car.infrastructure.security: DEBUG
+
+# Настройки для тестов
+test:
+  database:
+    cleanup:
+      enabled: true

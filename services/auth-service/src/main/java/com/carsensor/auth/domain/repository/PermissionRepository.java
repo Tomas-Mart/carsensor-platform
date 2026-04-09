@@ -26,6 +26,7 @@ import jakarta.persistence.QueryHint;
  *   <li>Категоризация - группировка по префиксам</li>
  * </ul>
  *
+ * @author CarSensor Platform Team
  * @see Permission
  * @see JpaRepository
  * @since 1.0
@@ -191,19 +192,19 @@ public interface PermissionRepository extends JpaRepository<Permission, Long> {
      *
      * @return список массивов [category, count]
      */
-    @Query("""
+    @Query(value = """
             SELECT
                 CASE
-                    WHEN p.name LIKE 'CAR_%' THEN 'CAR'
-                    WHEN p.name LIKE 'USER_%' THEN 'USER'
-                    WHEN p.name LIKE 'ROLE_%' THEN 'ROLE'
+                    WHEN name LIKE 'CAR_%' THEN 'CAR'
+                    WHEN name LIKE 'USER_%' THEN 'USER'
+                    WHEN name LIKE 'ROLE_%' THEN 'ROLE'
                     ELSE 'OTHER'
                 END AS category,
-                COUNT(p) AS count
-            FROM Permission p
+                COUNT(*) AS count
+            FROM permissions
             GROUP BY category
-            ORDER BY 1
-            """)
+            ORDER BY category
+            """, nativeQuery = true)
     @QueryHints(@QueryHint(name = "org.hibernate.timeout", value = "15"))
     List<Object[]> getPermissionStatistics();
 
@@ -235,6 +236,7 @@ public interface PermissionRepository extends JpaRepository<Permission, Long> {
      * <p><b>Оптимизация:</b> Использует COUNT с сравнением.
      *
      * @param names набор имен разрешений
+     * @param size  количество имен для проверки
      * @return true если все разрешения существуют, false в противном случае
      */
     @Query("""

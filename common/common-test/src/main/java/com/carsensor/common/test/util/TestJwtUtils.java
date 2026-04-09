@@ -10,24 +10,45 @@ import io.jsonwebtoken.security.Keys;
 /**
  * Утилитный класс для создания JWT токенов в тестах.
  * Предоставляет методы для генерации токенов с различными ролями.
+ * 
+ * <p>Использует единый секрет для всех сервисов:
+ * {@code mySuperSecretKeyForJWTTokenGenerationThatMustBeAtLeast512BitsLongInProductionEnvironment2026}
+ * 
+ * <p><b>Роли и права:</b>
+ * <ul>
+ *   <li>ROLE_ADMIN - полный доступ (CRUD)</li>
+ *   <li>ROLE_USER - только чтение (GET)</li>
+ *   <li>CAR_CREATE - право на создание</li>
+ *   <li>CAR_EDIT - право на редактирование</li>
+ *   <li>CAR_DELETE - право на удаление</li>
+ * </ul>
+ *
+ * @author CarSensor Platform Team
+ * @since 1.0
  */
 public final class TestJwtUtils {
 
-    private static final String JWT_SECRET = "mySecretKeyForJWTTokenGenerationThatMustBeAtLeast512BitsLongInProductionEnvironment2026";
+    /** Единый секретный ключ для JWT токенов во всех тестах. */
+    private static final String JWT_SECRET = "mySuperSecretKeyForJWTTokenGenerationThatMustBeAtLeast512BitsLongInProductionEnvironment2026";
+    
+    /** Секретный ключ для подписи JWT. */
     private static final SecretKey KEY = Keys.hmacShaKeyFor(JWT_SECRET.getBytes(StandardCharsets.UTF_8));
 
+    /** Время жизни токена по умолчанию (1 час в миллисекундах). */
+    private static final long DEFAULT_EXPIRY_MS = 3600000;
+
     private TestJwtUtils() {
-        // Приватный конструктор для утилитного класса
+        throw new UnsupportedOperationException("Utility class");
     }
 
     /**
      * Создает JWT токен для администратора.
-     * Токен содержит роли: ROLE_ADMIN, CAR_DELETE, CAR_CREATE, CAR_EDIT
+     * Токен содержит роль: ROLE_ADMIN
      *
      * @return JWT токен администратора
      */
     public static String createAdminToken() {
-        return createToken("test-admin", List.of("ROLE_ADMIN", "CAR_DELETE", "CAR_CREATE", "CAR_EDIT"));
+        return createToken("admin", List.of("ROLE_ADMIN"));
     }
 
     /**
@@ -37,7 +58,7 @@ public final class TestJwtUtils {
      * @return JWT токен пользователя
      */
     public static String createUserToken() {
-        return createToken("test-user", List.of("ROLE_USER"));
+        return createToken("user", List.of("ROLE_USER"));
     }
 
     /**
@@ -49,16 +70,7 @@ public final class TestJwtUtils {
      * @return JWT токен
      */
     public static String createToken(String username, List<String> roles) {
-        Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + 3600000); // 1 час
-
-        return Jwts.builder()
-                .subject(username)
-                .claim("roles", roles)
-                .issuedAt(now)
-                .expiration(expiryDate)
-                .signWith(KEY, Jwts.SIG.HS256)
-                .compact();
+        return createTokenWithCustomExpiry(username, roles, DEFAULT_EXPIRY_MS);
     }
 
     /**
@@ -80,5 +92,14 @@ public final class TestJwtUtils {
                 .expiration(expiryDate)
                 .signWith(KEY, Jwts.SIG.HS256)
                 .compact();
+    }
+
+    /**
+     * Возвращает секретный ключ, используемый для подписи токенов.
+     *
+     * @return секретный ключ
+     */
+    public static String getJwtSecret() {
+        return JWT_SECRET;
     }
 }

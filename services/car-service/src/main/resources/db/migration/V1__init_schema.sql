@@ -25,20 +25,27 @@ CREATE TABLE IF NOT EXISTS cars (
 );
 
 -- Индексы для оптимизации запросов
-CREATE INDEX idx_cars_brand_model ON cars(brand, model);
-CREATE INDEX idx_cars_year ON cars(year);
-CREATE INDEX idx_cars_price ON cars(price);
-CREATE INDEX idx_cars_mileage ON cars(mileage);
-CREATE INDEX idx_cars_parsed_at ON cars(parsed_at);
-CREATE INDEX idx_cars_external_id ON cars(external_id);
-CREATE INDEX idx_cars_transmission ON cars(transmission);
-CREATE INDEX idx_cars_drive_type ON cars(drive_type);
+CREATE INDEX IF NOT EXISTS idx_cars_brand_model ON cars(brand, model);
+CREATE INDEX IF NOT EXISTS idx_cars_year ON cars(year);
+CREATE INDEX IF NOT EXISTS idx_cars_price ON cars(price);
+CREATE INDEX IF NOT EXISTS idx_cars_mileage ON cars(mileage);
+CREATE INDEX IF NOT EXISTS idx_cars_parsed_at ON cars(parsed_at);
+CREATE INDEX IF NOT EXISTS idx_cars_external_id ON cars(external_id);
+CREATE INDEX IF NOT EXISTS idx_cars_transmission ON cars(transmission);
+CREATE INDEX IF NOT EXISTS idx_cars_drive_type ON cars(drive_type);
 
 -- Составные индексы для частых комбинаций фильтров
-CREATE INDEX idx_cars_brand_year ON cars(brand, year);
-CREATE INDEX idx_cars_model_year ON cars(model, year);
+CREATE INDEX IF NOT EXISTS idx_cars_brand_year ON cars(brand, year);
+CREATE INDEX IF NOT EXISTS idx_cars_model_year ON cars(model, year);
 
 -- Полнотекстовый поиск
-CREATE INDEX idx_cars_search ON cars USING GIN (
+CREATE INDEX IF NOT EXISTS idx_cars_search ON cars USING GIN (
     to_tsvector('russian', coalesce(brand, '') || ' ' || coalesce(model, '') || ' ' || coalesce(description, ''))
 );
+
+-- Триггер для обновления updated_at
+DROP TRIGGER IF EXISTS update_cars_updated_at ON cars;
+CREATE TRIGGER update_cars_updated_at
+    BEFORE UPDATE ON cars
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();

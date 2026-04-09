@@ -20,6 +20,11 @@
          ============================================================ -->
     <dependencies>
 
+        <dependency>
+            <groupId>org.hibernate.orm</groupId>
+            <artifactId>hibernate-core</artifactId>
+        </dependency>
+
         <!-- ========================================================
              SPRING BOOT STARTERS
              ===================================================== -->

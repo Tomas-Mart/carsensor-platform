@@ -15,9 +15,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 
-/**
- * Реализация сервиса маршрутизации
- */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -34,10 +31,17 @@ public class RouteServiceImpl implements RouteService {
 
     @Override
     public List<RouteInfo> getAvailableRoutes() {
-        return routeDefinitionLocator.getRouteDefinitions()
+        if (routeDefinitionLocator == null) {
+            log.warn("RouteDefinitionLocator is not available");
+            return List.of();
+        }
+
+        var routes = routeDefinitionLocator.getRouteDefinitions()
                 .map(this::mapToRouteInfo)
                 .collectList()
                 .block();
+
+        return routes != null ? routes : List.of();
     }
 
     @Override
@@ -80,7 +84,11 @@ public class RouteServiceImpl implements RouteService {
     @Override
     public void addRoute(RouteConfig routeConfig) {
         log.info("Adding new route: {}", routeConfig.id());
-        // конвертация RouteConfig в Spring RouteDefinition
+        if (routeDefinitionWriter == null) {
+            log.warn("RouteDefinitionWriter is not available");
+            return;
+        }
+
         org.springframework.cloud.gateway.route.RouteDefinition springRouteDef =
                 convertToSpringRouteDefinition(routeConfig);
         routeDefinitionWriter.save(Mono.just(springRouteDef)).subscribe();
@@ -90,6 +98,12 @@ public class RouteServiceImpl implements RouteService {
     @Override
     public void removeRoute(String routeId) {
         log.info("Removing route: {}", routeId);
+        if (routeDefinitionWriter == null) {
+            log.warn("RouteDefinitionWriter is not available");
+            metricsMap.remove(routeId);
+            return;
+        }
+
         routeDefinitionWriter.delete(Mono.just(routeId)).subscribe();
         metricsMap.remove(routeId);
         log.info("Route removed successfully: {}", routeId);
@@ -98,12 +112,16 @@ public class RouteServiceImpl implements RouteService {
     @Override
     public void updateRoute(String routeId, RouteConfig routeConfig) {
         log.info("Updating route: {}", routeId);
-        // Конвертируем RouteConfig в Spring RouteDefinition
+        if (routeDefinitionWriter == null) {
+            log.warn("RouteDefinitionWriter is not available");
+            return;
+        }
+
         org.springframework.cloud.gateway.route.RouteDefinition springRouteDef =
                 convertToSpringRouteDefinition(routeConfig);
 
         routeDefinitionWriter.delete(Mono.just(routeId))
-                .then(routeDefinitionWriter.save(Mono.just(springRouteDef)))  // ✅ ИСПРАВЛЕНО
+                .then(routeDefinitionWriter.save(Mono.just(springRouteDef)))
                 .subscribe();
         log.info("Route updated successfully: {}", routeId);
     }
@@ -128,7 +146,6 @@ public class RouteServiceImpl implements RouteService {
     @Override
     public void refreshRoutes() {
         log.info("Refreshing all routes");
-        // Здесь логика обновления маршрутов
         metricsMap.clear();
         routeCounters.clear();
         statusCounters.clear();
@@ -140,31 +157,64 @@ public class RouteServiceImpl implements RouteService {
                 new org.springframework.cloud.gateway.route.RouteDefinition();
         def.setId(config.id());
         def.setUri(java.net.URI.create(config.uri()));
-        // конвертация predicates и filters
+
+        // Добавляем предикаты, если они есть
+        if (config.predicates() != null) {
+            config.predicates().forEach(predicate -> {
+                // Создаем предикат из строки
+                var predicateDef = new org.springframework.cloud.gateway.handler.predicate.PredicateDefinition(predicate);
+                def.getPredicates().add(predicateDef);
+            });
+        }
+
+        // Добавляем фильтры, если они есть
+        if (config.filters() != null) {
+            config.filters().forEach(filter -> {
+                var filterDef = new org.springframework.cloud.gateway.filter.FilterDefinition(filter);
+                def.getFilters().add(filterDef);
+            });
+        }
+
+        // Добавляем метаданные
+        if (config.metadata() != null) {
+            def.getMetadata().putAll(config.metadata());
+        }
+
         return def;
     }
 
-    // Вспомогательные методы
     private RouteInfo mapToRouteInfo(org.springframework.cloud.gateway.route.RouteDefinition definition) {
+        if (definition == null) {
+            log.warn("RouteDefinition is null");
+            return null;
+        }
+
+        // Безопасное получение order из metadata
+        int order = 0;
+        if (definition.getMetadata() != null && definition.getMetadata().get("order") != null) {
+            Object orderObj = definition.getMetadata().get("order");
+            if (orderObj instanceof Integer) {
+                order = (Integer) orderObj;
+            }
+        }
+
         return new RouteInfo(
-                definition.getId(),
-                definition.getUri().toString(),
-                definition.getPredicates().stream()
+                definition.getId() != null ? definition.getId() : "unknown",
+                definition.getUri() != null ? definition.getUri().toString() : "",
+                definition.getPredicates() != null ? definition.getPredicates().stream()
                         .map(p -> p.getName() + ": " + p.getArgs())
-                        .toList(),
-                definition.getFilters().stream()
+                        .toList() : List.of(),
+                definition.getFilters() != null ? definition.getFilters().stream()
                         .map(f -> f.getName() + ": " + f.getArgs())
-                        .toList(),
-                definition.getMetadata().get("order") != null ?
-                        (int) definition.getMetadata().get("order") : 0,
+                        .toList() : List.of(),
+                order,
                 true,
                 RouteStatus.UNKNOWN
         );
     }
 
     private String getServiceUrl(String serviceName) {
-        // Используем переменные окружения для URL
-        String protocol = "http";  // В продакшене можно сделать https
+        String protocol = "http";
 
         return switch (serviceName) {
             case "auth-service" -> String.format("%s://auth-service:8081", protocol);
@@ -175,17 +225,20 @@ public class RouteServiceImpl implements RouteService {
     }
 
     private double calculateRequestsPerSecond() {
-        // Здесь должна быть реальная логика расчета
-        return totalRequests.get() / 3600.0;
+        long total = totalRequests.get();
+        return total / 3600.0;
     }
 
     private long calculatePeakRequestsPerMinute() {
-        // Здесь должна быть реальная логика расчета
         return totalRequests.get() / 60;
     }
 
-    // Метод для обновления метрик (вызывается из фильтра)
     public void updateMetrics(String routeId, int statusCode) {
+        if (routeId == null) {
+            log.warn("Cannot update metrics for null routeId");
+            return;
+        }
+
         totalRequests.incrementAndGet();
 
         routeCounters.computeIfAbsent(routeId, k -> new AtomicLong())
@@ -195,20 +248,28 @@ public class RouteServiceImpl implements RouteService {
                 .incrementAndGet();
 
         metricsMap.compute(routeId, (k, v) -> {
+            long currentTime = System.currentTimeMillis();
             if (v == null) {
                 return new RouteMetrics(routeId, 1,
                         statusCode < 400 ? 1 : 0,
                         statusCode >= 400 ? 1 : 0,
-                        0, System.currentTimeMillis());
+                        0, currentTime);
             }
+
+            long newTotalRequests = v.totalRequests() + 1;
+            long newSuccessful = v.successfulRequests() + (statusCode < 400 ? 1 : 0);
+            long newFailed = v.failedRequests() + (statusCode >= 400 ? 1 : 0);
+
+            double newAvgResponseTime = (v.averageResponseTime() * v.totalRequests() +
+                                         (currentTime - v.lastRequestTime())) / newTotalRequests;
+
             return new RouteMetrics(
                     routeId,
-                    v.totalRequests() + 1,
-                    v.successfulRequests() + (statusCode < 400 ? 1 : 0),
-                    v.failedRequests() + (statusCode >= 400 ? 1 : 0),
-                    (v.averageResponseTime() * v.totalRequests() +
-                            (System.currentTimeMillis() - v.lastRequestTime())) / (v.totalRequests() + 1),
-                    System.currentTimeMillis()
+                    newTotalRequests,
+                    newSuccessful,
+                    newFailed,
+                    newAvgResponseTime,
+                    currentTime
             );
         });
     }

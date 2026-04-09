@@ -43,6 +43,7 @@ import lombok.extern.slf4j.Slf4j;
  *   <li>{@link PlatformException.MissingTokenException} - токен отсутствует или пуст</li>
  * </ul>
  *
+ * @author CarSensor Platform Team
  * @see PlatformException
  * @see io.jsonwebtoken.Jwts
  * @since 1.0
@@ -55,13 +56,18 @@ public class JwtTokenProvider {
      * Секретный ключ для подписи JWT токенов.
      * Должен быть не менее 256 бит (32 байта) для HS256 алгоритма.
      */
-    @Value("${app.jwt.secret:mySecretKeyForJWTTokenGenerationThatMustBeAtLeast512BitsLongInProductionEnvironment2026}")
+    @Value("${app.jwt.secret:mySuperSecretKeyForJWTTokenGenerationThatMustBeAtLeast512BitsLongInProductionEnvironment2026}")
     private String jwtSecret;
 
     /**
      * Claim для ролей пользователя.
      */
     private static final String CLAIM_ROLES = "roles";
+
+    /**
+     * Claim для статуса активности пользователя.
+     */
+    private static final String CLAIM_IS_ACTIVE = "is_active";
 
     /**
      * Получает ключ для подписи JWT токенов.
@@ -122,6 +128,27 @@ public class JwtTokenProvider {
     }
 
     /**
+     * Извлекает статус активности пользователя из токена.
+     * <p>
+     * <b>Важно:</b> В Car Service этот метод всегда возвращает true,
+     * так как проверка активности пользователя - ответственность Auth Service.
+     * Если поле is_active отсутствует в токене, возвращается true.
+     *
+     * @param token JWT токен
+     * @return true если пользователь активен, по умолчанию true
+     */
+    public boolean isUserActive(String token) {
+        try {
+            Boolean isActive = extractClaim(token, claims -> claims.get(CLAIM_IS_ACTIVE, Boolean.class));
+            // Если поле отсутствует в токене, считаем пользователя активным
+            return isActive != null ? isActive : true;
+        } catch (Exception e) {
+            log.debug("Failed to extract is_active claim, assuming user is active: {}", e.getMessage());
+            return true;
+        }
+    }
+
+    /**
      * Извлекает конкретное claim из токена.
      *
      * <p>Пример использования:
@@ -156,6 +183,21 @@ public class JwtTokenProvider {
                     .build()
                     .parseSignedClaims(token)
                     .getPayload();
+        } catch (ExpiredJwtException e) {
+            log.error("JWT token expired: {}", e.getMessage());
+            throw new PlatformException.TokenExpiredException("Срок действия токена истек");
+        } catch (SignatureException e) {
+            log.error("Invalid JWT signature: {}", e.getMessage());
+            throw new PlatformException.InvalidTokenFormatException("Неверная подпись токена");
+        } catch (MalformedJwtException e) {
+            log.error("Invalid JWT token format: {}", e.getMessage());
+            throw new PlatformException.InvalidTokenFormatException("Неверный формат токена");
+        } catch (UnsupportedJwtException e) {
+            log.error("Unsupported JWT token: {}", e.getMessage());
+            throw new PlatformException.InvalidTokenException("Неподдерживаемый тип токена");
+        } catch (IllegalArgumentException e) {
+            log.error("JWT claims string is empty: {}", e.getMessage());
+            throw new PlatformException.MissingTokenException("Токен отсутствует");
         } catch (Exception e) {
             log.error("Failed to parse JWT token: {}", e.getMessage());
             throw new PlatformException.InvalidTokenFormatException("Неверный формат токена");
@@ -173,9 +215,6 @@ public class JwtTokenProvider {
      *   <li>Тип токена (UnsupportedJwtException)</li>
      *   <li>Наличие токена (IllegalArgumentException)</li>
      * </ul>
-     *
-     * <p>При возникновении любой ошибки выбрасывается соответствующее исключение
-     * из иерархии {@link PlatformException}.
      *
      * @param token JWT токен для проверки
      * @return true если токен валиден
@@ -195,15 +234,15 @@ public class JwtTokenProvider {
                     .build()
                     .parseSignedClaims(token);
             return true;
+        } catch (ExpiredJwtException e) {
+            log.error("JWT token expired: {}", e.getMessage());
+            throw new PlatformException.TokenExpiredException("Срок действия токена истек");
         } catch (SignatureException e) {
             log.error("Invalid JWT signature: {}", e.getMessage());
             throw new PlatformException.InvalidTokenFormatException("Неверная подпись токена");
         } catch (MalformedJwtException e) {
             log.error("Invalid JWT token format: {}", e.getMessage());
             throw new PlatformException.InvalidTokenFormatException("Неверный формат токена");
-        } catch (ExpiredJwtException e) {
-            log.error("JWT token expired: {}", e.getMessage());
-            throw new PlatformException.TokenExpiredException("Срок действия токена истек");
         } catch (UnsupportedJwtException e) {
             log.error("Unsupported JWT token: {}", e.getMessage());
             throw new PlatformException.InvalidTokenException("Неподдерживаемый тип токена");

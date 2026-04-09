@@ -1,26 +1,41 @@
 spring:
-  application:
-    name: scheduler-service
   config:
     activate:
       on-profile: docker
+
   datasource:
-    url: jdbc:postgresql://${DB_HOST:postgres-scheduler}:${DB_PORT:5432}/${DB_NAME:scheduler_db}
+    url: jdbc:postgresql://postgres-scheduler:5432/scheduler_db
     username: ${DB_USERNAME:postgres}
     password: ${DB_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
     hikari:
-      maximum-pool-size: 5
-      minimum-idle: 2
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+      idleTimeout: 600000
+      maxLifetime: 1800000
+
   jpa:
+    open-in-view: false
     hibernate:
       ddl-auto: validate
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        jdbc:
+          batch_size: 20
+        order_inserts: true
+        order_updates: true
+    show-sql: false
+
   flyway:
     enabled: true
     baseline-on-migrate: true
+    baseline-version: 0
+    locations: classpath:db/migration
+    validate-on-migrate: false
+
   quartz:
     job-store-type: jdbc
     jdbc:
@@ -37,22 +52,23 @@ spring:
             tablePrefix: QRTZ_
             isClustered: true
             clusterCheckinInterval: 20000
+            misfireThreshold: 60000
           threadPool:
             class: org.quartz.simpl.SimpleThreadPool
             threadCount: 5
             threadPriority: 5
 
 server:
-  port: ${PORT:8083}
-
-parser:
-  max-pages: ${PARSER_MAX_PAGES:5}
-  user-agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-  timeout: 30000
-  schedule: "0 0 * * * *"
+  port: 8083
 
 car-service:
   url: ${CAR_SERVICE_URL:http://car-service:8082}
+
+parser:
+  max-pages: ${PARSER_MAX_PAGES:5}
+  user-agent: ${PARSER_USER_AGENT:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36}
+  timeout: ${PARSER_TIMEOUT:30000}
+  schedule: ${PARSER_SCHEDULE:0 0 * * * *}
 
 resilience4j:
   circuitbreaker:
@@ -80,11 +96,22 @@ management:
   endpoint:
     health:
       show-details: always
-  prometheus:
-    metrics:
-      export:
-        enabled: true
+  metrics:
+    tags:
+      application: scheduler-service
+    distribution:
+      percentiles-histogram:
+        http:
+          server:
+            requests: true
+
+app:
+  jwt:
+    secret: ${JWT_SECRET:mySuperSecretKeyForJWTTokenGenerationThatMustBeAtLeast512BitsLongInProductionEnvironment2026}
+    access-token-expiration: ${JWT_ACCESS_EXPIRATION:900}
+    refresh-token-expiration: ${JWT_REFRESH_EXPIRATION:604800}
 
 logging:
   level:
     com.carsensor.scheduler: INFO
+    org.quartz: WARN

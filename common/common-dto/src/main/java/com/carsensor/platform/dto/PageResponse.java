@@ -1,15 +1,13 @@
 package com.carsensor.platform.dto;
 
 import java.util.List;
-import org.springframework.data.domain.Page;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.Builder;
 
 /**
  * Универсальный ответ с пагинацией
+ * Только данные — без логики создания
  */
-@Builder
 @Schema(description = "Ответ с пагинацией")
 public record PageResponse<T>(
         @JsonProperty("content")
@@ -51,16 +49,19 @@ public record PageResponse<T>(
                 example = "false")
         boolean empty
 ) {
-    public static <T> PageResponse<T> fromPage(Page<T> page) {
-        return PageResponse.<T>builder()
-                .content(page.getContent())
-                .totalElements(page.getTotalElements())
-                .totalPages(page.getTotalPages())
-                .currentPage(page.getNumber())
-                .pageSize(page.getSize())
-                .first(page.isFirst())
-                .last(page.isLast())
-                .empty(page.isEmpty())
-                .build();
+    // Компактный конструктор для нормализации
+    public PageResponse {
+        if (content == null) {
+            content = List.of();
+        }
+        if (pageSize <= 0) {
+            throw new IllegalArgumentException("pageSize must be positive");
+        }
+        if (totalPages < 0) {
+            throw new IllegalArgumentException("totalPages cannot be negative");
+        }
+        if (totalElements < 0) {
+            throw new IllegalArgumentException("totalElements cannot be negative");
+        }
     }
 }

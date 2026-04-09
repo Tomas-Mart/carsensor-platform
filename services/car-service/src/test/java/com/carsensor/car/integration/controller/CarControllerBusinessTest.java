@@ -1,24 +1,32 @@
 package com.carsensor.car.integration.controller;
 
+import java.io.IOException;
 import java.math.BigDecimal;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.TestInfo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.transaction.annotation.Transactional;
 import com.carsensor.car.CarServiceApplication;
 import com.carsensor.car.domain.entity.Car;
 import com.carsensor.car.domain.repository.CarRepository;
+import com.carsensor.common.test.AbstractIntegrationTest;
 import com.carsensor.common.test.util.TestJwtUtils;
 import com.carsensor.platform.dto.CarDto;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.extern.slf4j.Slf4j;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -28,54 +36,83 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
- * Слайс-тесты CarController.
+ * Слайс-тесты CarController для бизнес-логики.
  *
- * <p><b>Тип теста:</b> Интеграционный слайс-тест (Web Layer Test)
- * <ul>
- *   <li>Загружает только web слой + необходимые бины</li>
- *   <li>Использует MockMvc без реального HTTP сервера</li>
- *   <li>Быстрее полных интеграционных тестов</li>
- *   <li>Подходит для тестирования бизнес-логики контроллеров</li>
- * </ul>
+ * <p>Тестирует контроллер с использованием MockMvc без реального HTTP сервера.
+ * Быстрее полных интеграционных тестов, но использует реальную базу данных.
  *
- * <p><b>Когда использовать:</b>
- * <ul>
- *   <li>Тестирование эндпоинтов с реальной базой данных</li>
- *   <li>Проверка сериализации/десериализации JSON</li>
- *   <li>Тестирование фильтрации, пагинации, сортировки</li>
- *   <li>Проверка HTTP статусов и структуры ответов</li>
- * </ul>
- *
- * @see org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
+ * @author CarSensor Platform Team
  * @since 1.0
  */
-@SpringBootTest(
-        classes = CarServiceApplication.class,
-        webEnvironment = SpringBootTest.WebEnvironment.MOCK
-)
+@Slf4j
 @AutoConfigureMockMvc
-@ActiveProfiles("test")
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-@DisplayName("Слайс-тесты CarController")
-class CarControllerBusinessTest {
+@DisplayName("Слайс-тесты CarController (бизнес-логика)")
+@SpringBootTest(classes = CarServiceApplication.class,
+        webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+class CarControllerBusinessTest extends AbstractIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;
-
-    @Autowired
-    private ObjectMapper objectMapper;
 
     @Autowired
     private CarRepository carRepository;
 
     private String adminToken;
 
+    private static final ObjectMapper objectMapper = new ObjectMapper();
+
+    @BeforeAll
+    static void startTestSuite() {
+        log.info("═══════════════════════════════════════════════════════════════");
+        log.info("🚀 ЗАПУСК СЛАЙС-ТЕСТОВ BUSINESS");
+        log.info("═══════════════════════════════════════════════════════════════");
+        logEnvironmentInfoStatic();
+    }
+
+    @BeforeAll
+    static void cacheTestData() throws IOException {
+        Path cacheFile = getTestDataCache().resolve("test-cars.json");
+        List<CarDto> cachedTestCars;
+        if (Files.exists(cacheFile)) {
+            // Загружаем из кэша
+            String json = Files.readString(cacheFile);
+            cachedTestCars = objectMapper.readValue(json, new TypeReference<>() {
+            });
+            log.info("Загружено из кэша {} автомобилей", cachedTestCars.size());
+        } else {
+            // Создаем и сохраняем в кэш
+            cachedTestCars = List.of(
+                    new CarDto(null, "Toyota", "Camry", null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null),
+                    new CarDto(null, "Honda", "Civic", null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null)
+            );
+            Files.writeString(cacheFile, objectMapper.writeValueAsString(cachedTestCars));
+            log.info("Сохранено в кэш {} автомобилей", cachedTestCars.size());
+        }
+    }
+
+    @AfterAll
+    static void endTestSuite() {
+        log.info("═══════════════════════════════════════════════════════════════");
+        log.info("📊 ИТОГОВАЯ СТАТИСТИКА");
+        log.info("✅ Выполнено тестов: {}", getTestCount());
+        log.info("═══════════════════════════════════════════════════════════════");
+    }
+
     @BeforeEach
-    void setUp() {
-        carRepository.deleteAll();
+    void setUp(TestInfo testInfo) {
+        String testName = testInfo.getDisplayName();
+        String paddedName = String.format("%-60s", testName);
+        log.info("╔══════════════════════════════════════════════════════════════════════════════╗");
+        log.info("║ 🔧 ЗАПУСК ТЕСТА: {} ║", paddedName);
+        log.info("╚══════════════════════════════════════════════════════════════════════════════╝");
+
+        logEnvironmentInfo();
         adminToken = TestJwtUtils.createAdminToken();
     }
 
+    /**
+     * Создает тестовые автомобили для проверки фильтрации и пагинации.
+     */
     private void createTestCars() {
         carRepository.saveAll(List.of(
                 Car.builder()
@@ -90,15 +127,18 @@ class CarControllerBusinessTest {
         ));
     }
 
+    // ============================================================
+    // GET /api/v1/cars - фильтрация и пагинация
+    // ============================================================
     @Nested
     @DisplayName("GET /api/v1/cars - фильтрация и пагинация")
+    @Transactional
     class GetCarsBusinessTests {
 
         @BeforeEach
         void setUp() {
             carRepository.deleteAll();
             createTestCars();
-            adminToken = TestJwtUtils.createAdminToken();
         }
 
         @Test
@@ -157,8 +197,12 @@ class CarControllerBusinessTest {
         }
     }
 
+    // ============================================================
+    // GET /api/v1/cars/{id} - получение по ID
+    // ============================================================
     @Nested
     @DisplayName("GET /api/v1/cars/{id} - получение по ID")
+    @Transactional
     class GetCarByIdBusinessTests {
 
         private Long existingCarId;
@@ -170,7 +214,6 @@ class CarControllerBusinessTest {
                     .brand("Toyota").model("Camry").year(2020)
                     .mileage(50000).price(new BigDecimal("2500000")).build();
             existingCarId = carRepository.save(car).getId();
-            adminToken = TestJwtUtils.createAdminToken();
         }
 
         @Test
@@ -194,23 +237,46 @@ class CarControllerBusinessTest {
         }
     }
 
+    // ============================================================
+    // POST /api/v1/cars - создание
+    // ============================================================
     @Nested
     @DisplayName("POST /api/v1/cars - создание")
+    @Transactional
     class CreateCarBusinessTests {
 
         @BeforeEach
         void setUp() {
             carRepository.deleteAll();
-            adminToken = TestJwtUtils.createAdminToken();
         }
 
         @Test
         @DisplayName("Валидные данные - создает автомобиль")
         void validData_CreatesCar() throws Exception {
-            CarDto newCar = CarDto.builder()
-                    .brand("Mazda").model("CX-5").year(2022)
-                    .mileage(15000).price(new BigDecimal("2800000")).build();
-
+            CarDto newCar = new CarDto(
+                    null,                       // id
+                    "Mazda",                    // brand
+                    "CX-5",                     // model
+                    2022,                       // year
+                    15000,                      // mileage
+                    new BigDecimal("2800000"),  // price
+                    null,                       // description
+                    null,                       // originalBrand
+                    null,                       // originalModel
+                    null,                       // exteriorColor
+                    null,                       // interiorColor
+                    null,                       // engineCapacity
+                    null,                       // transmission
+                    null,                       // driveType
+                    null,                       // photoUrls
+                    null,                       // mainPhotoUrl
+                    null,                       // externalId
+                    null,                       // sourceUrl
+                    null,                       // parsedAt
+                    null,                       // createdAt
+                    null,                       // updatedAt
+                    null                        // version
+            );
             mockMvc.perform(post("/api/v1/cars")
                             .header("Authorization", "Bearer " + adminToken)
                             .contentType(MediaType.APPLICATION_JSON)
@@ -223,9 +289,30 @@ class CarControllerBusinessTest {
         @Test
         @DisplayName("Невалидные данные - 400")
         void invalidData_ReturnsBadRequest() throws Exception {
-            CarDto invalidCar = CarDto.builder()
-                    .brand("").year(1800).mileage(-100).build();
-
+            CarDto invalidCar = new CarDto(
+                    null,                       // id
+                    "",                         // brand
+                    null,                       // model
+                    1800,                       // year
+                    -100,                       // mileage
+                    null,                       // price
+                    null,                       // description
+                    null,                       // originalBrand
+                    null,                       // originalModel
+                    null,                       // exteriorColor
+                    null,                       // interiorColor
+                    null,                       // engineCapacity
+                    null,                       // transmission
+                    null,                       // driveType
+                    null,                       // photoUrls
+                    null,                       // mainPhotoUrl
+                    null,                       // externalId
+                    null,                       // sourceUrl
+                    null,                       // parsedAt
+                    null,                       // createdAt
+                    null,                       // updatedAt
+                    null                        // version
+            );
             mockMvc.perform(post("/api/v1/cars")
                             .header("Authorization", "Bearer " + adminToken)
                             .contentType(MediaType.APPLICATION_JSON)
@@ -237,20 +324,60 @@ class CarControllerBusinessTest {
         @Test
         @DisplayName("Дублирующийся externalId - 409")
         void duplicateExternalId_ReturnsConflict() throws Exception {
-            CarDto car1 = CarDto.builder()
-                    .brand("Mazda").model("CX-5").externalId("EXT001")
-                    .year(2022).mileage(15000).price(new BigDecimal("2800000")).build();
-
+            CarDto car1 = new CarDto(
+                    null,                           // id
+                    "Mazda",                        // brand
+                    "CX-5",                         // model
+                    2022,                           // year
+                    15000,                          // mileage
+                    new BigDecimal("2800000"),      // price
+                    null,                           // description
+                    null,                           // originalBrand
+                    null,                           // originalModel
+                    null,                           // exteriorColor
+                    null,                           // interiorColor
+                    null,                           // engineCapacity
+                    null,                           // transmission
+                    null,                           // driveType
+                    null,                           // photoUrls
+                    null,                           // mainPhotoUrl
+                    "EXT001",                       // externalId
+                    null,                           // sourceUrl
+                    null,                           // parsedAt
+                    null,                           // createdAt
+                    null,                           // updatedAt
+                    null                            // version
+            );
             mockMvc.perform(post("/api/v1/cars")
                             .header("Authorization", "Bearer " + adminToken)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(car1)))
                     .andExpect(status().isCreated());
 
-            CarDto car2 = CarDto.builder()
-                    .brand("Mazda").model("CX-5").externalId("EXT001")
-                    .year(2023).mileage(5000).price(new BigDecimal("3200000")).build();
-
+            CarDto car2 = new CarDto(
+                    null,                           // id
+                    "Mazda",                        // brand
+                    "CX-5",                         // model
+                    2023,                           // year
+                    5000,                           // mileage
+                    new BigDecimal("3200000"),      // price
+                    null,                           // description
+                    null,                           // originalBrand
+                    null,                           // originalModel
+                    null,                           // exteriorColor
+                    null,                           // interiorColor
+                    null,                           // engineCapacity
+                    null,                           // transmission
+                    null,                           // driveType
+                    null,                           // photoUrls
+                    null,                           // mainPhotoUrl
+                    "EXT001",                       // externalId
+                    null,                           // sourceUrl
+                    null,                           // parsedAt
+                    null,                           // createdAt
+                    null,                           // updatedAt
+                    null                            // version
+            );
             mockMvc.perform(post("/api/v1/cars")
                             .header("Authorization", "Bearer " + adminToken)
                             .contentType(MediaType.APPLICATION_JSON)
@@ -260,8 +387,12 @@ class CarControllerBusinessTest {
         }
     }
 
+    // ============================================================
+    // PUT /api/v1/cars/{id} - обновление
+    // ============================================================
     @Nested
     @DisplayName("PUT /api/v1/cars/{id} - обновление")
+    @Transactional
     class UpdateCarBusinessTests {
 
         private Long existingCarId;
@@ -273,16 +404,35 @@ class CarControllerBusinessTest {
                     .brand("Toyota").model("Camry").year(2020)
                     .mileage(50000).price(new BigDecimal("2500000")).build();
             existingCarId = carRepository.save(car).getId();
-            adminToken = TestJwtUtils.createAdminToken();
         }
 
         @Test
         @DisplayName("Существующий ID - обновляет автомобиль")
         void existingId_UpdatesCar() throws Exception {
-            CarDto updateData = CarDto.builder()
-                    .brand("Toyota").model("Camry Updated").year(2021)
-                    .mileage(45000).price(new BigDecimal("2400000")).build();
-
+            CarDto updateData = new CarDto(
+                    null,                               // id
+                    "Toyota",                           // brand
+                    "Camry Updated",                    // model
+                    2021,                               // year
+                    45000,                              // mileage
+                    new BigDecimal("2400000"),          // price
+                    null,                               // description
+                    null,                               // originalBrand
+                    null,                               // originalModel
+                    null,                               // exteriorColor
+                    null,                               // interiorColor
+                    null,                               // engineCapacity
+                    null,                               // transmission
+                    null,                               // driveType
+                    null,                               // photoUrls
+                    null,                               // mainPhotoUrl
+                    null,                               // externalId
+                    null,                               // sourceUrl
+                    null,                               // parsedAt
+                    null,                               // createdAt
+                    null,                               // updatedAt
+                    null                                // version
+            );
             mockMvc.perform(put("/api/v1/cars/" + existingCarId)
                             .header("Authorization", "Bearer " + adminToken)
                             .contentType(MediaType.APPLICATION_JSON)
@@ -294,10 +444,30 @@ class CarControllerBusinessTest {
         @Test
         @DisplayName("Несуществующий ID - 404")
         void nonExistingId_ReturnsNotFound() throws Exception {
-            CarDto updateData = CarDto.builder()
-                    .brand("Toyota").model("Camry").year(2021)
-                    .mileage(45000).price(new BigDecimal("2400000")).build();
-
+            CarDto updateData = new CarDto(
+                    null,                               // id
+                    "Toyota",                           // brand
+                    "Camry",                            // model
+                    2021,                               // year
+                    45000,                              // mileage
+                    new BigDecimal("2400000"),          // price
+                    null,                               // description
+                    null,                               // originalBrand
+                    null,                               // originalModel
+                    null,                               // exteriorColor
+                    null,                               // interiorColor
+                    null,                               // engineCapacity
+                    null,                               // transmission
+                    null,                               // driveType
+                    null,                               // photoUrls
+                    null,                               // mainPhotoUrl
+                    null,                               // externalId
+                    null,                               // sourceUrl
+                    null,                               // parsedAt
+                    null,                               // createdAt
+                    null,                               // updatedAt
+                    null                                // version
+            );
             mockMvc.perform(put("/api/v1/cars/999")
                             .header("Authorization", "Bearer " + adminToken)
                             .contentType(MediaType.APPLICATION_JSON)
@@ -306,8 +476,12 @@ class CarControllerBusinessTest {
         }
     }
 
+    // ============================================================
+    // DELETE /api/v1/cars/{id} - удаление
+    // ============================================================
     @Nested
     @DisplayName("DELETE /api/v1/cars/{id} - удаление")
+    @Transactional
     class DeleteCarBusinessTests {
 
         private Long existingCarId;
@@ -319,7 +493,6 @@ class CarControllerBusinessTest {
                     .brand("Toyota").model("Camry").year(2020)
                     .mileage(50000).price(new BigDecimal("2500000")).build();
             existingCarId = carRepository.save(car).getId();
-            adminToken = TestJwtUtils.createAdminToken();
         }
 
         @Test

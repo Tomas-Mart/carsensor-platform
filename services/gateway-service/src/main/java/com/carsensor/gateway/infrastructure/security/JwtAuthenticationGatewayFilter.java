@@ -3,7 +3,6 @@ package com.carsensor.gateway.infrastructure.security;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import javax.crypto.SecretKey;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.core.io.buffer.DataBuffer;
@@ -12,8 +11,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
-import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
+import com.carsensor.gateway.infrastructure.config.JwtProperties;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -25,12 +24,11 @@ import reactor.core.publisher.Mono;
 /**
  * Gateway фильтр для проверки JWT токенов
  */
-@Component
 @Slf4j
+@RequiredArgsConstructor
 public class JwtAuthenticationGatewayFilter implements GatewayFilter {
 
-    @Value("${app.jwt.secret}")
-    private String jwtSecret;
+    private final JwtProperties jwtProperties;
 
     private static final List<String> PUBLIC_PATHS = List.of(
             "/api/v1/auth/login",
@@ -54,6 +52,9 @@ public class JwtAuthenticationGatewayFilter implements GatewayFilter {
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
+
+        log.info("=== JwtAuthenticationGatewayFilter invoked for path: {} ===",
+                exchange.getRequest().getURI().getPath());
         ServerHttpRequest request = exchange.getRequest();
         String path = request.getURI().getPath();
 
@@ -103,7 +104,7 @@ public class JwtAuthenticationGatewayFilter implements GatewayFilter {
 
     private ValidationResult validateToken(String token) {
         try {
-            SecretKey key = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
+            SecretKey key = Keys.hmacShaKeyFor(jwtProperties.secret().getBytes(StandardCharsets.UTF_8));
             Jwts.parser()
                     .verifyWith(key)
                     .build()
@@ -123,7 +124,7 @@ public class JwtAuthenticationGatewayFilter implements GatewayFilter {
 
     private String extractUsername(String token) {
         try {
-            SecretKey key = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
+            SecretKey key = Keys.hmacShaKeyFor(jwtProperties.secret().getBytes(StandardCharsets.UTF_8));
             Claims claims = Jwts.parser()
                     .verifyWith(key)
                     .build()
@@ -139,7 +140,7 @@ public class JwtAuthenticationGatewayFilter implements GatewayFilter {
     @SuppressWarnings("unchecked")
     private List<String> extractRoles(String token) {
         try {
-            SecretKey key = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
+            SecretKey key = Keys.hmacShaKeyFor(jwtProperties.secret().getBytes(StandardCharsets.UTF_8));
             Claims claims = Jwts.parser()
                     .verifyWith(key)
                     .build()

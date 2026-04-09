@@ -1,16 +1,23 @@
 spring:
   cloud:
     gateway:
-      enabled: false
+      enabled: true
   main:
     web-application-type: reactive
 
+services:
+  auth:
+    url: http://localhost:8081
+  car:
+    url: http://localhost:8082
+
 app:
   jwt:
-    secret: mySecretKeyForJWTTokenGenerationThatMustBeAtLeast512BitsLongInProductionEnvironment2026
+    secret: mySuperSecretKeyForJWTTokenGenerationThatMustBeAtLeast512BitsLongInProductionEnvironment2026
     access-token-expiration: 900
     refresh-token-expiration: 604800
 
 logging:
   level:
     com.carsensor.gateway: DEBUG
+    org.springframework.cloud.gateway: INFO

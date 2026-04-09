@@ -45,6 +45,31 @@ import static org.assertj.core.api.Assertions.assertThat;
 @DisplayName("Интеграционные тесты UserRepository")
 class UserRepositoryTest extends AbstractJpaTest {
 
+    // ============================================================
+    // КОНСТАНТЫ ТЕСТОВЫХ ДАННЫХ
+    // ============================================================
+
+    private static final String PERMISSION_VIEW_CARS = "VIEW_CARS";
+    private static final String PERMISSION_EDIT_CARS = "EDIT_CARS";
+    private static final String PERMISSION_DELETE_CARS = "DELETE_CARS";
+
+    private static final String ROLE_USER = "ROLE_USER";
+    private static final String ROLE_ADMIN = "ROLE_ADMIN";
+
+    private static final String USER_JOHN = "john_doe";
+    private static final String USER_JANE = "jane_smith";
+    private static final String USER_BOB = "bob_wilson";
+    private static final String USER_ALICE = "alice_wonder";
+
+    private static final String EMAIL_JOHN = "john@example.com";
+    private static final String EMAIL_JANE = "jane@example.com";
+    private static final String EMAIL_BOB = "bob@example.com";
+    private static final String EMAIL_ALICE = "alice@example.com";
+
+    // ============================================================
+    // ПОЛЯ КЛАССА
+    // ============================================================
+
     @Autowired
     private TestEntityManager entityManager;
 
@@ -59,6 +84,10 @@ class UserRepositoryTest extends AbstractJpaTest {
 
     private LocalDateTime now;
 
+    // ============================================================
+    // ИНИЦИАЛИЗАЦИЯ
+    // ============================================================
+
     /**
      * Инициализация тестовых данных перед каждым тестом.
      */
@@ -66,7 +95,6 @@ class UserRepositoryTest extends AbstractJpaTest {
     void setUp() {
         now = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
 
-        // Очистка таблиц в правильном порядке
         clearAllTables();
         createTestData();
         setCreatedDates();
@@ -79,14 +107,12 @@ class UserRepositoryTest extends AbstractJpaTest {
     private void clearAllTables() {
         var em = entityManager.getEntityManager();
 
-        // Используем TRUNCATE с CASCADE для PostgreSQL
         em.createNativeQuery("TRUNCATE TABLE user_roles CASCADE").executeUpdate();
         em.createNativeQuery("TRUNCATE TABLE role_permissions CASCADE").executeUpdate();
         em.createNativeQuery("TRUNCATE TABLE users CASCADE").executeUpdate();
         em.createNativeQuery("TRUNCATE TABLE roles CASCADE").executeUpdate();
         em.createNativeQuery("TRUNCATE TABLE permissions CASCADE").executeUpdate();
 
-        // Сброс последовательностей для PostgreSQL
         em.createNativeQuery("ALTER SEQUENCE users_id_seq RESTART WITH 1").executeUpdate();
         em.createNativeQuery("ALTER SEQUENCE roles_id_seq RESTART WITH 1").executeUpdate();
         em.createNativeQuery("ALTER SEQUENCE permissions_id_seq RESTART WITH 1").executeUpdate();
@@ -101,83 +127,81 @@ class UserRepositoryTest extends AbstractJpaTest {
     private void createTestData() {
         // Создание разрешений
         var viewCars = Permission.builder()
-                .name("VIEW_CARS")
+                .name(PERMISSION_VIEW_CARS)
                 .description("Просмотр автомобилей")
                 .build();
         entityManager.persist(viewCars);
 
         var editCars = Permission.builder()
-                .name("EDIT_CARS")
+                .name(PERMISSION_EDIT_CARS)
                 .description("Редактирование автомобилей")
                 .build();
         entityManager.persist(editCars);
 
         var deleteCars = Permission.builder()
-                .name("DELETE_CARS")
+                .name(PERMISSION_DELETE_CARS)
                 .description("Удаление автомобилей")
                 .build();
         entityManager.persist(deleteCars);
 
         // Создание ролей
         var userRole = Role.builder()
-                .name("ROLE_USER")
+                .name(ROLE_USER)
                 .description("Обычный пользователь")
                 .permissions(Set.of(viewCars))
                 .build();
         entityManager.persist(userRole);
 
         var adminRole = Role.builder()
-                .name("ROLE_ADMIN")
+                .name(ROLE_ADMIN)
                 .description("Администратор")
                 .permissions(Set.of(viewCars, editCars, deleteCars))
                 .build();
         entityManager.persist(adminRole);
 
         // Создание пользователей
-        var user1 = User.builder()
-                .username("john_doe")
-                .email("john@example.com")
+        var john = User.builder()
+                .username(USER_JOHN)
+                .email(EMAIL_JOHN)
                 .password("encodedPass123")
                 .firstName("John")
                 .lastName("Doe")
                 .isActive(true)
                 .roles(Set.of(userRole))
                 .build();
-        entityManager.persist(user1);
+        entityManager.persist(john);
 
-        var user2 = User.builder()
-                .username("jane_smith")
-                .email("jane@example.com")
+        var jane = User.builder()
+                .username(USER_JANE)
+                .email(EMAIL_JANE)
                 .password("encodedPass456")
                 .firstName("Jane")
                 .lastName("Smith")
                 .isActive(true)
                 .roles(Set.of(userRole, adminRole))
                 .build();
-        entityManager.persist(user2);
+        entityManager.persist(jane);
 
-        var user3 = User.builder()
-                .username("bob_wilson")
-                .email("bob@example.com")
+        var bob = User.builder()
+                .username(USER_BOB)
+                .email(EMAIL_BOB)
                 .password("encodedPass789")
                 .firstName("Bob")
                 .lastName("Wilson")
                 .isActive(false)
                 .roles(Set.of(userRole))
                 .build();
-        entityManager.persist(user3);
+        entityManager.persist(bob);
 
         entityManager.flush();
     }
 
     /**
      * Устанавливает кастомные даты создания для тестовых пользователей.
-     * Использует positional parameters (?) для native query.
      */
     private void setCreatedDates() {
         var em = entityManager.getEntityManager();
 
-        // Positional parameters - первый параметр это date, второй username
         var updateSql = """
                 UPDATE users 
                 SET created_at = ? 
@@ -186,30 +210,30 @@ class UserRepositoryTest extends AbstractJpaTest {
 
         em.createNativeQuery(updateSql)
                 .setParameter(1, now.minusDays(10))
-                .setParameter(2, "john_doe")
+                .setParameter(2, USER_JOHN)
                 .executeUpdate();
 
         em.createNativeQuery(updateSql)
                 .setParameter(1, now.minusDays(5))
-                .setParameter(2, "jane_smith")
+                .setParameter(2, USER_JANE)
                 .executeUpdate();
 
         em.createNativeQuery(updateSql)
                 .setParameter(1, now.minusDays(1))
-                .setParameter(2, "bob_wilson")
+                .setParameter(2, USER_BOB)
                 .executeUpdate();
 
         entityManager.clear();
     }
 
-// ============================================================
-// Тесты методов с EntityGraph и JOIN FETCH
-// ============================================================
+    // ============================================================
+    // ТЕСТЫ МЕТОДОВ С EntityGraph И JOIN FETCH
+    // ============================================================
 
     @Test
     @DisplayName("1. Поиск пользователя с ролями и разрешениями (EntityGraph)")
     void findByUsername_ShouldReturnUserWithRolesAndPermissions() {
-        var found = userRepository.findByUsername("jane_smith");
+        var found = userRepository.findByUsername(USER_JANE);
 
         assertThat(found).isPresent();
 
@@ -220,34 +244,35 @@ class UserRepositoryTest extends AbstractJpaTest {
 
         assertThat(user.getRoles())
                 .extracting(Role::getName)
-                .containsExactlyInAnyOrder("ROLE_USER", "ROLE_ADMIN");
+                .containsExactlyInAnyOrder(ROLE_USER, ROLE_ADMIN);
 
-        // Проверяем, что разрешения загружены
         var adminRole = user.getRoles().stream()
-                .filter(r -> r.getName().equals("ROLE_ADMIN"))
+                .filter(role -> role.getName().equals(ROLE_ADMIN))
                 .findFirst()
                 .orElseThrow();
 
         assertThat(adminRole.getPermissions())
                 .as("Роль ADMIN должна иметь разрешения")
-                .isNotEmpty();
+                .isNotEmpty()
+                .extracting(Permission::getName)
+                .contains(PERMISSION_VIEW_CARS, PERMISSION_EDIT_CARS, PERMISSION_DELETE_CARS);
     }
 
     @Test
     @DisplayName("2. Поиск пользователя с ролями (JOIN FETCH)")
     void findByUsernameWithRoles_ShouldReturnUserWithRoles() {
-        var found = userRepository.findByUsernameWithRoles("jane_smith");
+        var found = userRepository.findByUsernameWithRoles(USER_JANE);
 
         assertThat(found).isPresent();
         assertThat(found.get().getRoles()).hasSize(2);
         assertThat(found.get().getRoles())
                 .extracting(Role::getName)
-                .containsExactlyInAnyOrder("ROLE_USER", "ROLE_ADMIN");
+                .containsExactlyInAnyOrder(ROLE_USER, ROLE_ADMIN);
     }
 
-// ============================================================
-// Тесты базовых CRUD операций
-// ============================================================
+    // ============================================================
+    // ТЕСТЫ БАЗОВЫХ CRUD ОПЕРАЦИЙ
+    // ============================================================
 
     @Test
     @DisplayName("3. Поиск по несуществующему username")
@@ -259,11 +284,11 @@ class UserRepositoryTest extends AbstractJpaTest {
     @Test
     @DisplayName("4. Сохранение нового пользователя")
     void save_WithValidUser_ShouldPersistUser() {
-        var userRole = roleRepository.findByName("ROLE_USER").orElseThrow();
+        var userRole = roleRepository.findByName(ROLE_USER).orElseThrow();
 
         var newUser = User.builder()
-                .username("alice_wonder")
-                .email("alice@example.com")
+                .username(USER_ALICE)
+                .email(EMAIL_ALICE)
                 .password("password123")
                 .firstName("Alice")
                 .lastName("Wonder")
@@ -274,18 +299,18 @@ class UserRepositoryTest extends AbstractJpaTest {
         var savedUser = userRepository.save(newUser);
 
         assertThat(savedUser.getId()).isNotNull();
-        assertThat(savedUser.getUsername()).isEqualTo("alice_wonder");
-        assertThat(savedUser.getEmail()).isEqualTo("alice@example.com");
+        assertThat(savedUser.getUsername()).isEqualTo(USER_ALICE);
+        assertThat(savedUser.getEmail()).isEqualTo(EMAIL_ALICE);
         assertThat(savedUser.isActive()).isTrue();
 
-        // Проверяем, что пользователь действительно сохранен
         var found = userRepository.findById(savedUser.getId());
         assertThat(found).isPresent();
+        assertThat(found.get().getUsername()).isEqualTo(USER_ALICE);
     }
 
-// ============================================================
-// Тесты агрегаций и статистики
-// ============================================================
+    // ============================================================
+    // ТЕСТЫ АГРЕГАЦИЙ И СТАТИСТИКИ
+    // ============================================================
 
     @Test
     @DisplayName("5. Подсчет пользователей созданных после даты")
@@ -306,7 +331,7 @@ class UserRepositoryTest extends AbstractJpaTest {
         var users = userRepository.findUsersCreatedBetween(start, end, 100);
 
         assertThat(users).hasSize(1);
-        assertThat(users.getFirst().getUsername()).isEqualTo("jane_smith");
+        assertThat(users.getFirst().getUsername()).isEqualTo(USER_JANE);
     }
 
     @Test
@@ -317,7 +342,7 @@ class UserRepositoryTest extends AbstractJpaTest {
         assertThat(activeUsers).hasSize(2);
         assertThat(activeUsers)
                 .extracting(User::getUsername)
-                .containsExactlyInAnyOrder("john_doe", "jane_smith");
+                .containsExactlyInAnyOrder(USER_JOHN, USER_JANE);
     }
 
     @Test
@@ -340,36 +365,36 @@ class UserRepositoryTest extends AbstractJpaTest {
         assertThat(inactiveCount).isEqualTo(1);
     }
 
-// ============================================================
-// Тесты поиска и существования
-// ============================================================
+    // ============================================================
+    // ТЕСТЫ ПОИСКА И СУЩЕСТВОВАНИЯ
+    // ============================================================
 
     @Test
     @DisplayName("10. Поиск пользователя по ID")
     void findById_WithExistingId_ShouldReturnUser() {
-        var user = userRepository.findByUsername("john_doe").orElseThrow();
+        var user = userRepository.findByUsername(USER_JOHN).orElseThrow();
         var found = userRepository.findById(user.getId());
 
         assertThat(found).isPresent();
-        assertThat(found.get().getUsername()).isEqualTo("john_doe");
+        assertThat(found.get().getUsername()).isEqualTo(USER_JOHN);
     }
 
     @Test
     @DisplayName("11. Поиск пользователя по username")
     void findByUsername_WithExistingUsername_ShouldReturnUser() {
-        var found = userRepository.findByUsername("john_doe");
+        var found = userRepository.findByUsername(USER_JOHN);
 
         assertThat(found).isPresent();
-        assertThat(found.get().getUsername()).isEqualTo("john_doe");
+        assertThat(found.get().getUsername()).isEqualTo(USER_JOHN);
     }
 
     @Test
     @DisplayName("12. Поиск пользователя по email")
     void findByEmail_WithExistingEmail_ShouldReturnUser() {
-        var found = userRepository.findByEmail("jane@example.com");
+        var found = userRepository.findByEmail(EMAIL_JANE);
 
         assertThat(found).isPresent();
-        assertThat(found.get().getUsername()).isEqualTo("jane_smith");
+        assertThat(found.get().getUsername()).isEqualTo(USER_JANE);
     }
 
     @Test
@@ -382,55 +407,55 @@ class UserRepositoryTest extends AbstractJpaTest {
     @Test
     @DisplayName("14. Проверка существования username")
     void existsByUsername_ShouldReturnTrueForExistingUser() {
-        assertThat(userRepository.existsByUsername("john_doe")).isTrue();
+        assertThat(userRepository.existsByUsername(USER_JOHN)).isTrue();
         assertThat(userRepository.existsByUsername("nonexistent")).isFalse();
     }
 
     @Test
     @DisplayName("15. Проверка существования email")
     void existsByEmail_ShouldReturnTrueForExistingEmail() {
-        assertThat(userRepository.existsByEmail("jane@example.com")).isTrue();
+        assertThat(userRepository.existsByEmail(EMAIL_JANE)).isTrue();
         assertThat(userRepository.existsByEmail("nonexistent@example.com")).isFalse();
     }
 
-// ============================================================
-// Тесты текстового поиска
-// ============================================================
+    // ============================================================
+    // ТЕСТЫ ТЕКСТОВОГО ПОИСКА
+    // ============================================================
 
     @Test
     @DisplayName("16. Поиск по имени или фамилии (частичное совпадение)")
-    void findByFirstNameOrLastName_ShouldFindUsersByPartialMatch() {
-        var found = userRepository
-                .findByFirstNameContainingIgnoreCaseOrLastNameContainingIgnoreCase("john", "smith");
+    void findByFirstNameOrLastName_ShouldFindUsersByPartialMatch() throws Exception {
+        // Ищем по "j" - найдет John (в имени) и Jane (в имени)
+        var found = userRepository.searchByFirstNameOrLastName("j");
 
         assertThat(found).hasSize(2);
         assertThat(found)
                 .extracting(User::getUsername)
-                .containsExactlyInAnyOrder("john_doe", "jane_smith");
+                .containsExactlyInAnyOrder(USER_JOHN, USER_JANE);
     }
 
     @Test
     @DisplayName("17. Поиск с частичным совпадением по разным критериям")
     void searchByPartialMatch_ShouldFindUsersByPartialName() {
         var foundByDo = userRepository
-                .findByFirstNameContainingIgnoreCaseOrLastNameContainingIgnoreCase("do", "do");
+                .searchByFirstNameOrLastName("do");
         var foundByWi = userRepository
-                .findByFirstNameContainingIgnoreCaseOrLastNameContainingIgnoreCase("wi", "wi");
+                .searchByFirstNameOrLastName("wi");
 
         assertThat(foundByDo).hasSize(1);
         assertThat(foundByWi).hasSize(1);
-        assertThat(foundByDo.getFirst().getUsername()).isEqualTo("john_doe");
-        assertThat(foundByWi.getFirst().getUsername()).isEqualTo("bob_wilson");
+        assertThat(foundByDo.getFirst().getUsername()).isEqualTo(USER_JOHN);
+        assertThat(foundByWi.getFirst().getUsername()).isEqualTo(USER_BOB);
     }
 
-// ============================================================
-// Тесты удаления
-// ============================================================
+    // ============================================================
+    // ТЕСТЫ УДАЛЕНИЯ
+    // ============================================================
 
     @Test
     @DisplayName("18. Удаление пользователя")
     void deleteById_ShouldRemoveUser() {
-        var user = userRepository.findByUsername("john_doe").orElseThrow();
+        var user = userRepository.findByUsername(USER_JOHN).orElseThrow();
         userRepository.deleteById(user.getId());
 
         entityManager.flush();
@@ -439,7 +464,6 @@ class UserRepositoryTest extends AbstractJpaTest {
         var found = userRepository.findById(user.getId());
         assertThat(found).isEmpty();
 
-        // Проверяем, что другие пользователи остались
         var remainingUsers = userRepository.findAll();
         assertThat(remainingUsers).hasSize(2);
     }

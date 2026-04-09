@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>RefreshTokenDto.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">CarSensor Platform Coverage Report</a> &gt; <a href="../index.html" class="el_bundle">common-dto</a> &gt; <a href="index.source.html" class="el_package">com.carsensor.platform.dto</a> &gt; <span class="el_source">RefreshTokenDto.java</span></div><h1>RefreshTokenDto.java</h1><pre class="source lang-java linenums">package com.carsensor.platform.dto;
+
+import java.time.LocalDateTime;
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
+
+@Schema(description = &quot;Refresh токен&quot;)
+<span class="nc" id="L9">public record RefreshTokenDto(</span>
+        @Schema(description = &quot;ID токена&quot;,
+                example = &quot;1&quot;,
+                accessMode = Schema.AccessMode.READ_ONLY)
+        Long id,
+
+        @Schema(description = &quot;Refresh token&quot;,
+                example = &quot;eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...&quot;,
+                accessMode = Schema.AccessMode.READ_ONLY)
+        String token,
+
+        @Schema(description = &quot;ID пользователя&quot;,
+                example = &quot;10&quot;)
+        Long userId,
+
+        @Schema(description = &quot;Имя пользователя&quot;,
+                example = &quot;admin&quot;)
+        String username,
+
+        @JsonProperty(&quot;expires_at&quot;)
+        @JsonFormat(pattern = &quot;yyyy-MM-dd HH:mm:ss&quot;)
+        @Schema(description = &quot;Время истечения&quot;,
+                example = &quot;2026-03-30 12:00:00&quot;)
+        LocalDateTime expiresAt,
+
+        @JsonProperty(&quot;created_at&quot;)
+        @JsonFormat(pattern = &quot;yyyy-MM-dd HH:mm:ss&quot;)
+        @Schema(description = &quot;Время создания&quot;,
+                example = &quot;2026-03-29 12:00:00&quot;)
+        LocalDateTime createdAt,
+
+        @Schema(description = &quot;Активен ли токен&quot;,
+                example = &quot;true&quot;)
+        boolean active
+) {
+    // Фабричный метод для создания
+    public static RefreshTokenDto of(
+            Long id, String token, Long userId, String username,
+            LocalDateTime expiresAt, LocalDateTime createdAt, boolean active
+    ) {
+<span class="nc" id="L49">        return new RefreshTokenDto(id, token, userId, username, expiresAt, createdAt, active);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,18 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>RoleDto.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">CarSensor Platform Coverage Report</a> &gt; <a href="../index.html" class="el_bundle">common-dto</a> &gt; <a href="index.source.html" class="el_package">com.carsensor.platform.dto</a> &gt; <span class="el_source">RoleDto.java</span></div><h1>RoleDto.java</h1><pre class="source lang-java linenums">package com.carsensor.platform.dto;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
-import lombok.Builder;
 
 /**
  * DTO для роли
  */
-@Builder
 @Schema(description = &quot;Роль пользователя&quot;)
-<span class="nc" id="L15">public record RoleDto(</span>
+public record RoleDto(
         @Schema(description = &quot;ID роли&quot;,
                 example = &quot;1&quot;,
                 accessMode = Schema.AccessMode.READ_ONLY)
@@ -36,7 +36,51 @@ import lombok.Builder;
         @JsonProperty(&quot;permissions&quot;)
         @Schema(description = &quot;Список разрешений, связанных с ролью&quot;,
                 example = &quot;[\&quot;CAR_VIEW\&quot;, \&quot;CAR_EDIT\&quot;, \&quot;USER_MANAGE\&quot;]&quot;)
-        List&lt;String&gt; permissions
+        List&lt;String&gt; permissions,
+
+        @JsonProperty(&quot;created_at&quot;)
+        @JsonFormat(pattern = &quot;yyyy-MM-dd HH:mm:ss&quot;)
+        @Schema(description = &quot;Дата создания&quot;,
+                example = &quot;2026-03-29 12:00:00&quot;,
+                accessMode = Schema.AccessMode.READ_ONLY)
+        LocalDateTime createdAt,
+
+        @JsonProperty(&quot;updated_at&quot;)
+        @JsonFormat(pattern = &quot;yyyy-MM-dd HH:mm:ss&quot;)
+        @Schema(description = &quot;Дата обновления&quot;,
+                example = &quot;2026-03-29 12:00:00&quot;,
+                accessMode = Schema.AccessMode.READ_ONLY)
+        LocalDateTime updatedAt,
+
+        @Schema(description = &quot;Версия для оптимистичной блокировки&quot;,
+                example = &quot;0&quot;,
+                accessMode = Schema.AccessMode.READ_ONLY)
+        Long version
 ) {
+    // Компактный конструктор для нормализации
+<span class="nc" id="L61">    public RoleDto {</span>
+<span class="nc bnc" id="L62" title="All 2 branches missed.">        if (name != null) {</span>
+<span class="nc" id="L63">            name = name.trim().toUpperCase();</span>
+<span class="nc bnc" id="L64" title="All 2 branches missed.">            if (!name.startsWith(&quot;ROLE_&quot;)) {</span>
+<span class="nc" id="L65">                name = &quot;ROLE_&quot; + name;</span>
+            }
+        }
+<span class="nc bnc" id="L68" title="All 2 branches missed.">        if (description != null) {</span>
+<span class="nc" id="L69">            description = description.trim();</span>
+        }
+<span class="nc bnc" id="L71" title="All 2 branches missed.">        if (permissions == null) {</span>
+<span class="nc" id="L72">            permissions = List.of();</span>
+        }
+<span class="nc" id="L74">    }</span>
+
+    // Фабричный метод для создания простой роли
+    public static RoleDto of(String name, String description) {
+<span class="nc" id="L78">        return new RoleDto(null, name, description, List.of(), null, null, null);</span>
+    }
+
+    // Фабричный метод для создания роли с разрешениями
+    public static RoleDto of(String name, String description, List&lt;String&gt; permissions) {
+<span class="nc" id="L83">        return new RoleDto(null, name, description, permissions, null, null, null);</span>
+    }
 }
-</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

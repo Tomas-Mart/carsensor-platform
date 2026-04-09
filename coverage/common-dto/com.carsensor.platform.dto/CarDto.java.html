@@ -12,17 +12,13 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
-import lombok.Builder;
-import lombok.With;
 
 /**
  * DTO для автомобиля с использованием Java 21 Records
- * Immutable, без boilerplate кода
+ * Immutable, с поддержкой Builder паттерна через отдельный класс
  */
-@Builder
-@With
 @Schema(description = &quot;Данные автомобиля&quot;)
-<span class="nc" id="L25">public record CarDto(</span>
+public record CarDto(
         @Schema(description = &quot;ID автомобиля&quot;,
                 example = &quot;1&quot;,
                 accessMode = Schema.AccessMode.READ_ONLY)
@@ -155,7 +151,204 @@ import lombok.With;
                 example = &quot;2026-03-16 14:30:00&quot;,
                 pattern = &quot;yyyy-MM-dd HH:mm:ss&quot;,
                 accessMode = Schema.AccessMode.READ_ONLY)
-        LocalDateTime updatedAt
+        LocalDateTime updatedAt,
+
+        @Schema(description = &quot;Версия для оптимистичной блокировки&quot;,
+                example = &quot;0&quot;,
+                accessMode = Schema.AccessMode.READ_ONLY)
+        Long version
 ) {
+    // Compact constructor для нормализации данных
+<span class="nc" id="L162">    public CarDto {</span>
+<span class="nc bnc" id="L163" title="All 2 branches missed.">        if (brand != null) {</span>
+<span class="nc" id="L164">            brand = brand.trim();</span>
+        }
+<span class="nc bnc" id="L166" title="All 2 branches missed.">        if (model != null) {</span>
+<span class="nc" id="L167">            model = model.trim();</span>
+        }
+<span class="nc bnc" id="L169" title="All 4 branches missed.">        if (price != null &amp;&amp; price.compareTo(BigDecimal.ZERO) &lt;= 0) {</span>
+<span class="nc" id="L170">            throw new IllegalArgumentException(&quot;Price must be positive&quot;);</span>
+        }
+<span class="nc" id="L172">    }</span>
+
+    // ===== ФАБРИЧНЫЕ МЕТОДЫ =====
+
+    public static CarDto of(String brand, String model) {
+<span class="nc" id="L177">        return new CarDto(null, brand, model, null, null, null,</span>
+                null, null, null, null, null, null,
+                null, null, null, null, null, null,
+                null, null, null, null);
+    }
+
+    public static CarDto of(String brand, String model, Integer year, Integer mileage, BigDecimal price) {
+<span class="nc" id="L184">        return new CarDto(null, brand, model, year, mileage, price,</span>
+                null, null, null, null, null, null,
+                null, null, null, null, null, null,
+                null, null, null, null);
+    }
+
+    public static CarDto of(
+            String brand, String model, Integer year, Integer mileage,
+            BigDecimal price, String exteriorColor, String transmission, String driveType
+    ) {
+<span class="nc" id="L194">        return new CarDto(null, brand, model, year, mileage, price,</span>
+                null, null, null, exteriorColor, null, null,
+                transmission, driveType, null, null, null, null,
+                null, null, null, null);
+    }
+
+    // ===== BUILDER =====
+
+    public static Builder builder() {
+<span class="nc" id="L203">        return new Builder();</span>
+    }
+
+    public static final class Builder {
+        private Long id;
+        private String brand;
+        private String model;
+        private Integer year;
+        private Integer mileage;
+        private BigDecimal price;
+        private String description;
+        private String originalBrand;
+        private String originalModel;
+        private String exteriorColor;
+        private String interiorColor;
+        private String engineCapacity;
+        private String transmission;
+        private String driveType;
+        private List&lt;String&gt; photoUrls;
+        private String mainPhotoUrl;
+        private String externalId;
+        private String sourceUrl;
+        private LocalDateTime parsedAt;
+        private LocalDateTime createdAt;
+        private LocalDateTime updatedAt;
+        private Long version;
+
+        private Builder() {
+        }
+
+        public Builder id(Long id) {
+<span class="nc" id="L234">            this.id = id;</span>
+<span class="nc" id="L235">            return this;</span>
+        }
+
+        public Builder brand(String brand) {
+<span class="nc" id="L239">            this.brand = brand;</span>
+<span class="nc" id="L240">            return this;</span>
+        }
+
+        public Builder model(String model) {
+<span class="nc" id="L244">            this.model = model;</span>
+<span class="nc" id="L245">            return this;</span>
+        }
+
+        public Builder year(Integer year) {
+<span class="nc" id="L249">            this.year = year;</span>
+<span class="nc" id="L250">            return this;</span>
+        }
+
+        public Builder mileage(Integer mileage) {
+<span class="nc" id="L254">            this.mileage = mileage;</span>
+<span class="nc" id="L255">            return this;</span>
+        }
+
+        public Builder price(BigDecimal price) {
+<span class="nc" id="L259">            this.price = price;</span>
+<span class="nc" id="L260">            return this;</span>
+        }
+
+        public Builder description(String description) {
+<span class="nc" id="L264">            this.description = description;</span>
+<span class="nc" id="L265">            return this;</span>
+        }
+
+        public Builder originalBrand(String originalBrand) {
+<span class="nc" id="L269">            this.originalBrand = originalBrand;</span>
+<span class="nc" id="L270">            return this;</span>
+        }
+
+        public Builder originalModel(String originalModel) {
+<span class="nc" id="L274">            this.originalModel = originalModel;</span>
+<span class="nc" id="L275">            return this;</span>
+        }
+
+        public Builder exteriorColor(String exteriorColor) {
+<span class="nc" id="L279">            this.exteriorColor = exteriorColor;</span>
+<span class="nc" id="L280">            return this;</span>
+        }
+
+        public Builder interiorColor(String interiorColor) {
+<span class="nc" id="L284">            this.interiorColor = interiorColor;</span>
+<span class="nc" id="L285">            return this;</span>
+        }
+
+        public Builder engineCapacity(String engineCapacity) {
+<span class="nc" id="L289">            this.engineCapacity = engineCapacity;</span>
+<span class="nc" id="L290">            return this;</span>
+        }
+
+        public Builder transmission(String transmission) {
+<span class="nc" id="L294">            this.transmission = transmission;</span>
+<span class="nc" id="L295">            return this;</span>
+        }
+
+        public Builder driveType(String driveType) {
+<span class="nc" id="L299">            this.driveType = driveType;</span>
+<span class="nc" id="L300">            return this;</span>
+        }
+
+        public Builder photoUrls(List&lt;String&gt; photoUrls) {
+<span class="nc" id="L304">            this.photoUrls = photoUrls;</span>
+<span class="nc" id="L305">            return this;</span>
+        }
+
+        public Builder mainPhotoUrl(String mainPhotoUrl) {
+<span class="nc" id="L309">            this.mainPhotoUrl = mainPhotoUrl;</span>
+<span class="nc" id="L310">            return this;</span>
+        }
+
+        public Builder externalId(String externalId) {
+<span class="nc" id="L314">            this.externalId = externalId;</span>
+<span class="nc" id="L315">            return this;</span>
+        }
+
+        public Builder sourceUrl(String sourceUrl) {
+<span class="nc" id="L319">            this.sourceUrl = sourceUrl;</span>
+<span class="nc" id="L320">            return this;</span>
+        }
+
+        public Builder parsedAt(LocalDateTime parsedAt) {
+<span class="nc" id="L324">            this.parsedAt = parsedAt;</span>
+<span class="nc" id="L325">            return this;</span>
+        }
+
+        public Builder createdAt(LocalDateTime createdAt) {
+<span class="nc" id="L329">            this.createdAt = createdAt;</span>
+<span class="nc" id="L330">            return this;</span>
+        }
+
+        public Builder updatedAt(LocalDateTime updatedAt) {
+<span class="nc" id="L334">            this.updatedAt = updatedAt;</span>
+<span class="nc" id="L335">            return this;</span>
+        }
+
+        public Builder version(Long version) {
+<span class="nc" id="L339">            this.version = version;</span>
+<span class="nc" id="L340">            return this;</span>
+        }
+
+        public CarDto build() {
+<span class="nc" id="L344">            return new CarDto(</span>
+                    id, brand, model, year, mileage, price,
+                    description, originalBrand, originalModel, exteriorColor,
+                    interiorColor, engineCapacity, transmission, driveType,
+                    photoUrls, mainPhotoUrl, externalId, sourceUrl,
+                    parsedAt, createdAt, updatedAt, version
+            );
+        }
+    }
 }
-</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

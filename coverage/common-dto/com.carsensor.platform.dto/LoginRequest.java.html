@@ -8,7 +8,7 @@ import jakarta.validation.constraints.Size;
  * Запрос на логин - Record с валидацией
  */
 @Schema(description = &quot;Запрос на аутентификацию&quot;)
-<span class="nc" id="L11">public record LoginRequest(</span>
+public record LoginRequest(
         @NotBlank(message = &quot;Логин не может быть пустым&quot;)
         @Size(min = 3, max = 50, message = &quot;Логин должен содержать от 3 до 50 символов&quot;)
         @Schema(description = &quot;Имя пользователя&quot;,
@@ -27,5 +27,14 @@ import jakarta.validation.constraints.Size;
                 format = &quot;password&quot;)
         String password
 ) {
+    // Компактный конструктор для нормализации
+<span class="nc" id="L31">    public LoginRequest {</span>
+<span class="nc bnc" id="L32" title="All 2 branches missed.">        if (username != null) {</span>
+<span class="nc" id="L33">            username = username.trim().toLowerCase();</span>
+        }
+<span class="nc bnc" id="L35" title="All 2 branches missed.">        if (password != null) {</span>
+<span class="nc" id="L36">            password = password.trim();</span>
+        }
+<span class="nc" id="L38">    }</span>
 }
-</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

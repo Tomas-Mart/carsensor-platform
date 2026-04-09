@@ -4,14 +4,12 @@ import java.math.BigDecimal;
 import java.util.List;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.Builder;
 
 /**
  * DTO для опций фильтрации
  */
-@Builder
 @Schema(description = &quot;Доступные опции для фильтрации автомобилей&quot;)
-<span class="nc" id="L14">public record FilterOptionsDto(</span>
+public record FilterOptionsDto(
         @Schema(description = &quot;Список доступных марок&quot;,
                 example = &quot;[\&quot;Toyota\&quot;, \&quot;Honda\&quot;, \&quot;Nissan\&quot;]&quot;)
         List&lt;String&gt; brands,
@@ -49,5 +47,21 @@ import lombok.Builder;
                 example = &quot;[\&quot;Белый\&quot;, \&quot;Черный\&quot;, \&quot;Серебристый\&quot;]&quot;)
         List&lt;String&gt; colors
 ) {
+    // Компактный конструктор для нормализации
+<span class="nc" id="L51">    public FilterOptionsDto {</span>
+        // Обеспечиваем, что списки не null
+<span class="nc bnc" id="L53" title="All 2 branches missed.">        if (brands == null) {</span>
+<span class="nc" id="L54">            brands = List.of();</span>
+        }
+<span class="nc bnc" id="L56" title="All 2 branches missed.">        if (transmissions == null) {</span>
+<span class="nc" id="L57">            transmissions = List.of();</span>
+        }
+<span class="nc bnc" id="L59" title="All 2 branches missed.">        if (driveTypes == null) {</span>
+<span class="nc" id="L60">            driveTypes = List.of();</span>
+        }
+<span class="nc bnc" id="L62" title="All 2 branches missed.">        if (colors == null) {</span>
+<span class="nc" id="L63">            colors = List.of();</span>
+        }
+<span class="nc" id="L65">    }</span>
 }
-</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

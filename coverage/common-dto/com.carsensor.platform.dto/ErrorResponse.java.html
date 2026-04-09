@@ -5,12 +5,11 @@ import java.util.Map;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.Builder;
 
 /**
  * DTO для ответа с ошибкой
+ * Не зависит от Spring — только чистый Java
  */
-@Builder
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Schema(description = &quot;Стандартный ответ с ошибкой (Problem Details for HTTP APIs RFC 7807)&quot;)
 public record ErrorResponse(
@@ -47,10 +46,131 @@ public record ErrorResponse(
                 example = &quot;{\&quot;brand\&quot;: \&quot;Марка не может быть пустой\&quot;, \&quot;year\&quot;: \&quot;Год должен быть от 1900 до 2026\&quot;}&quot;)
         Map&lt;String, String&gt; fieldErrors
 ) {
+    // Компактный конструктор для нормализации
 <span class="nc" id="L50">    public ErrorResponse {</span>
-<span class="nc bnc" id="L51" title="All 2 branches missed.">        if (timestamp == null) {</span>
+<span class="nc bnc" id="L51" title="All 4 branches missed.">        if (timestamp == null || timestamp.isBlank()) {</span>
 <span class="nc" id="L52">            timestamp = Instant.now().toString();</span>
         }
 <span class="nc" id="L54">    }</span>
+
+    // ===== Фабричные методы (без Spring HttpStatus) =====
+
+    /**
+     * Создает ответ с ошибкой
+     *
+     * @param statusCode HTTP статус код (например, 400, 404, 500)
+     * @param statusText HTTP статус текст (например, &quot;Bad Request&quot;)
+     * @param message    детальное сообщение об ошибке
+     */
+    public static ErrorResponse of(int statusCode, String statusText, String message) {
+<span class="nc" id="L66">        return new ErrorResponse(</span>
+                null,
+                statusCode,
+                statusText,
+                message,
+                null,
+                null,
+                null
+        );
+    }
+
+    public static ErrorResponse of(int statusCode, String statusText, String message, String path) {
+<span class="nc" id="L78">        return new ErrorResponse(</span>
+                null,
+                statusCode,
+                statusText,
+                message,
+                path,
+                null,
+                null
+        );
+    }
+
+    public static ErrorResponse of(int statusCode, String statusText, String message, String path, String errorCode) {
+<span class="nc" id="L90">        return new ErrorResponse(</span>
+                null,
+                statusCode,
+                statusText,
+                message,
+                path,
+                errorCode,
+                null
+        );
+    }
+
+    /**
+     * Создает ответ для ошибки валидации (400 Bad Request)
+     */
+    public static ErrorResponse validationError(Map&lt;String, String&gt; fieldErrors, String path) {
+<span class="nc" id="L105">        return new ErrorResponse(</span>
+                null,
+                400,
+                &quot;Bad Request&quot;,
+                &quot;Ошибка валидации входных данных&quot;,
+                path,
+                &quot;VALIDATION_FAILED&quot;,
+                fieldErrors
+        );
+    }
+
+    /**
+     * Создает ответ для ошибки 401 Unauthorized
+     */
+    public static ErrorResponse unauthorized(String message, String path) {
+<span class="nc" id="L120">        return new ErrorResponse(</span>
+                null,
+                401,
+                &quot;Unauthorized&quot;,
+                message,
+                path,
+                &quot;UNAUTHORIZED&quot;,
+                null
+        );
+    }
+
+    /**
+     * Создает ответ для ошибки 403 Forbidden
+     */
+    public static ErrorResponse forbidden(String message, String path) {
+<span class="nc" id="L135">        return new ErrorResponse(</span>
+                null,
+                403,
+                &quot;Forbidden&quot;,
+                message,
+                path,
+                &quot;ACCESS_DENIED&quot;,
+                null
+        );
+    }
+
+    /**
+     * Создает ответ для ошибки 404 Not Found
+     */
+    public static ErrorResponse notFound(String message, String path) {
+<span class="nc" id="L150">        return new ErrorResponse(</span>
+                null,
+                404,
+                &quot;Not Found&quot;,
+                message,
+                path,
+                &quot;NOT_FOUND&quot;,
+                null
+        );
+    }
+
+    /**
+     * Создает ответ для ошибки 500 Internal Server Error
+     */
+    public static ErrorResponse internalServerError(String message, String path) {
+<span class="nc" id="L165">        return new ErrorResponse(</span>
+                null,
+                500,
+                &quot;Internal Server Error&quot;,
+                message,
+                path,
+                &quot;INTERNAL_ERROR&quot;,
+                null
+        );
+    }
 }
-</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../../jacoco-resources/report.gif" type="image/gif"/><title>PageResponseFactory.java</title><link rel="stylesheet" href="../../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../../index.html" class="el_report">CarSensor Platform Coverage Report</a> &gt; <a href="../index.html" class="el_bundle">common-dto</a> &gt; <a href="index.source.html" class="el_package">com.carsensor.platform.dto.factory</a> &gt; <span class="el_source">PageResponseFactory.java</span></div><h1>PageResponseFactory.java</h1><pre class="source lang-java linenums">package com.carsensor.platform.dto.factory;
+
+import java.util.List;
+import com.carsensor.platform.dto.PageResponse;
+
+/**
+ * Фабрика для создания PageResponse
+ * Содержит все методы для удобного создания объектов PageResponse
+ */
+public final class PageResponseFactory {
+
+<span class="nc" id="L12">    private PageResponseFactory() {</span>
+<span class="nc" id="L13">        throw new UnsupportedOperationException(&quot;Utility class - do not instantiate&quot;);</span>
+    }
+
+    /**
+     * Создает PageResponse из Spring Page
+     *
+     * @param page Spring Page объект
+     * @param &lt;T&gt;  тип содержимого
+     * @return PageResponse
+     */
+    public static &lt;T&gt; PageResponse&lt;T&gt; fromPage(org.springframework.data.domain.Page&lt;T&gt; page) {
+<span class="nc" id="L24">        return new PageResponse&lt;&gt;(</span>
+<span class="nc" id="L25">                page.getContent(),</span>
+<span class="nc" id="L26">                page.getTotalElements(),</span>
+<span class="nc" id="L27">                page.getTotalPages(),</span>
+<span class="nc" id="L28">                page.getNumber(),</span>
+<span class="nc" id="L29">                page.getSize(),</span>
+<span class="nc" id="L30">                page.isFirst(),</span>
+<span class="nc" id="L31">                page.isLast(),</span>
+<span class="nc" id="L32">                page.isEmpty()</span>
+        );
+    }
+
+    /**
+     * Создает пустую страницу с размером по умолчанию 10
+     *
+     * @param &lt;T&gt; тип содержимого
+     * @return пустая PageResponse
+     */
+    @SuppressWarnings(&quot;unchecked&quot;)
+    public static &lt;T&gt; PageResponse&lt;T&gt; empty() {
+<span class="nc" id="L44">        return new PageResponse&lt;&gt;(</span>
+<span class="nc" id="L45">                List.of(),</span>
+                0,
+                0,
+                0,
+                10,
+                true,
+                true,
+                true
+        );
+    }
+
+    /**
+     * Создает пустую страницу с указанным размером
+     *
+     * @param pageSize размер страницы
+     * @param &lt;T&gt;      тип содержимого
+     * @return пустая PageResponse
+     */
+    @SuppressWarnings(&quot;unchecked&quot;)
+    public static &lt;T&gt; PageResponse&lt;T&gt; empty(int pageSize) {
+<span class="nc" id="L65">        return new PageResponse&lt;&gt;(</span>
+<span class="nc" id="L66">                List.of(),</span>
+                0,
+                0,
+                0,
+                pageSize,
+                true,
+                true,
+                true
+        );
+    }
+
+    /**
+     * Создает PageResponse с кастомными параметрами
+     *
+     * @param content       содержимое страницы
+     * @param totalElements общее количество элементов
+     * @param currentPage   номер текущей страницы (начиная с 0)
+     * @param pageSize      размер страницы
+     * @param &lt;T&gt;           тип содержимого
+     * @return PageResponse
+     */
+    public static &lt;T&gt; PageResponse&lt;T&gt; of(List&lt;T&gt; content, long totalElements, int currentPage, int pageSize) {
+<span class="nc" id="L88">        int totalPages = (int) Math.ceil((double) totalElements / pageSize);</span>
+<span class="nc bnc" id="L89" title="All 2 branches missed.">        boolean first = currentPage == 0;</span>
+<span class="nc bnc" id="L90" title="All 4 branches missed.">        boolean last = currentPage == totalPages - 1 || totalPages == 0;</span>
+<span class="nc bnc" id="L91" title="All 4 branches missed.">        boolean empty = content == null || content.isEmpty();</span>
+
+<span class="nc" id="L93">        return new PageResponse&lt;&gt;(</span>
+<span class="nc bnc" id="L94" title="All 2 branches missed.">                content != null ? content : List.of(),</span>
+                totalElements,
+                totalPages,
+                currentPage,
+                pageSize,
+                first,
+                last,
+                empty
+        );
+    }
+
+    /**
+     * Создает PageResponse из списка (для случаев без Spring Page)
+     *
+     * @param content       содержимое страницы
+     * @param totalElements общее количество элементов
+     * @param currentPage   номер текущей страницы
+     * @param pageSize      размер страницы
+     * @param &lt;T&gt;           тип содержимого
+     * @return PageResponse
+     */
+    public static &lt;T&gt; PageResponse&lt;T&gt; fromList(List&lt;T&gt; content, long totalElements, int currentPage, int pageSize) {
+<span class="nc" id="L116">        return of(content, totalElements, currentPage, pageSize);</span>
+    }
+
+    /**
+     * Создает PageResponse для первой страницы
+     *
+     * @param content       содержимое страницы
+     * @param totalElements общее количество элементов
+     * @param pageSize      размер страницы
+     * @param &lt;T&gt;           тип содержимого
+     * @return PageResponse для первой страницы
+     */
+    public static &lt;T&gt; PageResponse&lt;T&gt; firstPage(List&lt;T&gt; content, long totalElements, int pageSize) {
+<span class="nc" id="L129">        return of(content, totalElements, 0, pageSize);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

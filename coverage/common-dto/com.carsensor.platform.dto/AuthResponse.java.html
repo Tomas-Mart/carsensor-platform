@@ -2,23 +2,21 @@
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.Builder;
 
 /**
  * Ответ с JWT токенами
  */
-@Builder
 @Schema(description = &quot;Ответ с JWT токенами после успешной аутентификации&quot;)
 public record AuthResponse(
         @JsonProperty(&quot;access_token&quot;)
         @Schema(description = &quot;JWT токен доступа&quot;,
-                example = &quot;eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ&quot;,
+                example = &quot;eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...&quot;,
                 requiredMode = Schema.RequiredMode.REQUIRED)
         String accessToken,
 
         @JsonProperty(&quot;refresh_token&quot;)
         @Schema(description = &quot;JWT токен для обновления&quot;,
-                example = &quot;eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ&quot;)
+                example = &quot;eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...&quot;)
         String refreshToken,
 
         @JsonProperty(&quot;token_type&quot;)
@@ -45,10 +43,35 @@ public record AuthResponse(
                 example = &quot;[\&quot;ROLE_ADMIN\&quot;, \&quot;ROLE_USER\&quot;]&quot;)
         String[] roles
 ) {
-    public static final String TOKEN_TYPE = &quot;Bearer&quot;;
+    public static final String DEFAULT_TOKEN_TYPE = &quot;Bearer&quot;;
 
-<span class="nc" id="L50">    public AuthResponse {</span>
-<span class="nc" id="L51">        tokenType = TOKEN_TYPE;</span>
-<span class="nc" id="L52">    }</span>
+    // Компактный конструктор для нормализации
+<span class="nc" id="L49">    public AuthResponse {</span>
+<span class="nc bnc" id="L50" title="All 4 branches missed.">        if (tokenType == null || tokenType.isBlank()) {</span>
+<span class="nc" id="L51">            tokenType = DEFAULT_TOKEN_TYPE;</span>
+        }
+<span class="nc bnc" id="L53" title="All 4 branches missed.">        if (accessToken == null || accessToken.isBlank()) {</span>
+<span class="nc" id="L54">            throw new IllegalArgumentException(&quot;accessToken cannot be null or blank&quot;);</span>
+        }
+<span class="nc bnc" id="L56" title="All 2 branches missed.">        if (expiresIn &lt;= 0) {</span>
+<span class="nc" id="L57">            throw new IllegalArgumentException(&quot;expiresIn must be positive&quot;);</span>
+        }
+<span class="nc" id="L59">    }</span>
+
+    // Фабричный метод для удобного создания
+    public static AuthResponse of(
+            String accessToken,
+            String refreshToken,
+            long expiresIn,
+            String username,
+            String[] roles) {
+<span class="nc" id="L68">        return new AuthResponse(</span>
+                accessToken,
+                refreshToken,
+                DEFAULT_TOKEN_TYPE,
+                expiresIn,
+                username,
+                roles);
+    }
 }
-</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

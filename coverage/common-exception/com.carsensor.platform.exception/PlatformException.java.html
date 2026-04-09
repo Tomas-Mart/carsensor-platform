@@ -3,7 +3,31 @@
 import lombok.Getter;
 
 /**
- * Базовое исключение платформы - sealed class для контроля иерархии
+ * Базовое исключение платформы - sealed class для контроля иерархии.
+ *
+ * &lt;p&gt;Предоставляет единую иерархию исключений для всех микросервисов платформы.
+ * Каждый тип исключения имеет свой уникальный код ошибки и пользовательское сообщение.
+ *
+ * &lt;p&gt;&lt;b&gt;Коды ошибок:&lt;/b&gt;
+ * &lt;ul&gt;
+ *   &lt;li&gt;CAR_NOT_FOUND - автомобиль не найден&lt;/li&gt;
+ *   &lt;li&gt;USER_NOT_FOUND - пользователь не найден&lt;/li&gt;
+ *   &lt;li&gt;INVALID_CREDENTIALS - неверные учетные данные&lt;/li&gt;
+ *   &lt;li&gt;ACCESS_DENIED - доступ запрещен&lt;/li&gt;
+ *   &lt;li&gt;DUPLICATE_RESOURCE - дублирование ресурса&lt;/li&gt;
+ *   &lt;li&gt;PARSING_ERROR - ошибка парсинга&lt;/li&gt;
+ *   &lt;li&gt;VALIDATION_ERROR - ошибка валидации&lt;/li&gt;
+ *   &lt;li&gt;MISSING_TOKEN - отсутствует токен&lt;/li&gt;
+ *   &lt;li&gt;INVALID_TOKEN_FORMAT - неверный формат токена&lt;/li&gt;
+ *   &lt;li&gt;INVALID_TOKEN - невалидный токен&lt;/li&gt;
+ *   &lt;li&gt;TOKEN_EXPIRED - токен истек&lt;/li&gt;
+ *   &lt;li&gt;UNAUTHORIZED - неавторизованный доступ&lt;/li&gt;
+ *   &lt;li&gt;USER_BLOCKED - пользователь заблокирован&lt;/li&gt;
+ *   &lt;li&gt;OPTIMISTIC_LOCK - ошибка оптимистичной блокировки&lt;/li&gt;
+ * &lt;/ul&gt;
+ *
+ * @author CarSensor Platform Team
+ * @since 1.0
  */
 @Getter
 public sealed class PlatformException extends RuntimeException
@@ -17,192 +41,494 @@ public sealed class PlatformException extends RuntimeException
         PlatformException.MissingTokenException,
         PlatformException.InvalidTokenFormatException,
         PlatformException.InvalidTokenException,
-        PlatformException.TokenExpiredException {
+        PlatformException.TokenExpiredException,
+        PlatformException.UnauthorizedException,
+        PlatformException.UserBlockedException,
+        PlatformException.OptimisticLockException {
 
     private final String errorCode;
     private final String userMessage;
     private final Object[] args;
 
+    /**
+     * Конструктор базового исключения.
+     *
+     * @param errorCode        код ошибки
+     * @param userMessage      сообщение для пользователя
+     * @param technicalMessage техническое сообщение для логов
+     * @param args             аргументы сообщения
+     * @param cause            причина исключения
+     */
     protected PlatformException(String errorCode, String userMessage, String technicalMessage, Object[] args, Throwable cause) {
-<span class="nc" id="L27">        super(technicalMessage, cause);</span>
-<span class="nc" id="L28">        this.errorCode = errorCode;</span>
-<span class="nc" id="L29">        this.userMessage = userMessage;</span>
-<span class="nc" id="L30">        this.args = args;</span>
-<span class="nc" id="L31">    }</span>
+<span class="nc" id="L63">        super(technicalMessage, cause);</span>
+<span class="nc" id="L64">        this.errorCode = errorCode;</span>
+<span class="nc" id="L65">        this.userMessage = userMessage;</span>
+<span class="nc" id="L66">        this.args = args;</span>
+<span class="nc" id="L67">    }</span>
+
+    // ============================================================
+    // Исключения для работы с автомобилями
+    // ============================================================
 
     /**
-     * Автомобиль не найден
+     * Автомобиль не найден.
+     *
+     * &lt;p&gt;Выбрасывается при попытке получить, обновить или удалить автомобиль,
+     * который не существует в базе данных.
      */
     public static final class CarNotFoundException extends PlatformException {
+
+        /**
+         * Создает исключение для несуществующего ID.
+         *
+         * @param id идентификатор автомобиля
+         */
         public CarNotFoundException(Long id) {
-<span class="nc" id="L38">            super(</span>
+<span class="nc" id="L87">            super(</span>
                     &quot;CAR_NOT_FOUND&quot;,
                     &quot;Автомобиль с идентификатором &quot; + id + &quot; не найден&quot;,
                     &quot;Car not found with id: &quot; + id,
                     new Object[]{id},
                     null
             );
-<span class="nc" id="L45">        }</span>
+<span class="nc" id="L94">        }</span>
 
+        /**
+         * Создает исключение для несуществующей комбинации марки и модели.
+         *
+         * @param brand марка автомобиля
+         * @param model модель автомобиля
+         */
         public CarNotFoundException(String brand, String model) {
-<span class="nc" id="L48">            super(</span>
+<span class="nc" id="L103">            super(</span>
                     &quot;CAR_NOT_FOUND&quot;,
                     &quot;Автомобиль &quot; + brand + &quot; &quot; + model + &quot; не найден&quot;,
                     &quot;Car not found: &quot; + brand + &quot; &quot; + model,
                     new Object[]{brand, model},
                     null
             );
-<span class="nc" id="L55">        }</span>
+<span class="nc" id="L110">        }</span>
     }
 
+    // ============================================================
+    // Исключения для работы с пользователями
+    // ============================================================
+
     /**
-     * Пользователь не найден
+     * Пользователь не найден.
+     *
+     * &lt;p&gt;Выбрасывается при попытке аутентификации или получения данных
+     * пользователя, который не существует.
      */
     public static final class UserNotFoundException extends PlatformException {
+
+        /**
+         * Создает исключение для несуществующего пользователя.
+         *
+         * @param username имя пользователя
+         */
         public UserNotFoundException(String username) {
-<span class="nc" id="L63">            super(</span>
+<span class="nc" id="L131">            super(</span>
                     &quot;USER_NOT_FOUND&quot;,
                     &quot;Пользователь не найден&quot;,
                     &quot;User not found: &quot; + username,
                     new Object[]{username},
                     null
             );
-<span class="nc" id="L70">        }</span>
+<span class="nc" id="L138">        }</span>
     }
 
     /**
-     * Неверные учетные данные
+     * Пользователь заблокирован.
+     *
+     * &lt;p&gt;Выбрасывается при попытке аутентификации заблокированного пользователя.
+     */
+    public static final class UserBlockedException extends PlatformException {
+
+        /**
+         * Создает исключение для заблокированного пользователя.
+         *
+         * @param username имя пользователя
+         */
+        public UserBlockedException(String username) {
+<span class="nc" id="L154">            super(</span>
+                    &quot;USER_BLOCKED&quot;,
+                    &quot;Учетная запись заблокирована&quot;,
+                    &quot;User account is blocked: &quot; + username,
+                    new Object[]{username},
+                    null
+            );
+<span class="nc" id="L161">        }</span>
+    }
+
+    // ============================================================
+    // Исключения аутентификации и авторизации
+    // ============================================================
+
+    /**
+     * Неверные учетные данные.
+     *
+     * &lt;p&gt;Выбрасывается при неверном логине или пароле.
      */
     public static final class InvalidCredentialsException extends PlatformException {
+
+        /**
+         * Создает исключение с сообщением по умолчанию.
+         */
         public InvalidCredentialsException() {
-<span class="nc" id="L78">            super(</span>
+<span class="nc" id="L179">            super(</span>
                     &quot;INVALID_CREDENTIALS&quot;,
                     &quot;Неверный логин или пароль&quot;,
                     &quot;Invalid login credentials&quot;,
                     null,
                     null
             );
-<span class="nc" id="L85">        }</span>
+<span class="nc" id="L186">        }</span>
+
+        /**
+         * Создает исключение с пользовательским сообщением.
+         *
+         * @param message сообщение об ошибке
+         */
+        public InvalidCredentialsException(String message) {
+<span class="nc" id="L194">            super(</span>
+                    &quot;INVALID_CREDENTIALS&quot;,
+                    message,
+                    message,
+                    null,
+                    null
+            );
+<span class="nc" id="L201">        }</span>
     }
 
     /**
-     * Доступ запрещен
+     * Доступ запрещен.
+     *
+     * &lt;p&gt;Выбрасывается когда у пользователя недостаточно прав для выполнения операции.
      */
     public static final class AccessDeniedException extends PlatformException {
+
+        /**
+         * Создает исключение для отсутствия необходимой роли.
+         *
+         * @param username     имя пользователя
+         * @param requiredRole требуемая роль
+         */
         public AccessDeniedException(String username, String requiredRole) {
-<span class="nc" id="L93">            super(</span>
+<span class="nc" id="L218">            super(</span>
                     &quot;ACCESS_DENIED&quot;,
                     &quot;У вас нет прав для выполнения этого действия&quot;,
                     &quot;Access denied for user: &quot; + username + &quot;, required role: &quot; + requiredRole,
                     new Object[]{username, requiredRole},
                     null
             );
-<span class="nc" id="L100">        }</span>
-    }
+<span class="nc" id="L225">        }</span>
 
-    /**
-     * Дублирование ресурса
-     */
-    public static final class DuplicateResourceException extends PlatformException {
-        public DuplicateResourceException(String resourceType, String identifier) {
-<span class="nc" id="L108">            super(</span>
-                    &quot;DUPLICATE_RESOURCE&quot;,
-                    resourceType + &quot; с такими данными уже существует&quot;,
-                    resourceType + &quot; already exists: &quot; + identifier,
-                    new Object[]{resourceType, identifier},
+        /**
+         * Создает исключение с пользовательскими сообщениями.
+         *
+         * @param username         имя пользователя
+         * @param message          сообщение для пользователя
+         * @param technicalMessage техническое сообщение
+         */
+        public AccessDeniedException(String username, String message, String technicalMessage) {
+<span class="nc" id="L235">            super(</span>
+                    &quot;ACCESS_DENIED&quot;,
+                    message,
+                    technicalMessage,
+                    new Object[]{username},
                     null
             );
-<span class="nc" id="L115">        }</span>
+<span class="nc" id="L242">        }</span>
     }
 
     /**
-     * Ошибка парсинга
+     * Неавторизованный доступ (401 Unauthorized).
+     *
+     * &lt;p&gt;Выбрасывается когда отсутствует или невалиден JWT токен.
      */
-    public static final class ParsingException extends PlatformException {
-        public ParsingException(String url, Throwable cause) {
-<span class="nc" id="L123">            super(</span>
-                    &quot;PARSING_ERROR&quot;,
-                    &quot;Ошибка при парсинге данных с сайта&quot;,
-                    &quot;Failed to parse data from: &quot; + url,
-                    new Object[]{url},
-                    cause
-            );
-<span class="nc" id="L130">        }</span>
-    }
+    public static final class UnauthorizedException extends PlatformException {
 
-    /**
-     * Ошибка валидации
-     */
-    public static final class ValidationException extends PlatformException {
-        public ValidationException(String message) {
-<span class="nc" id="L138">            super(</span>
-                    &quot;VALIDATION_ERROR&quot;,
+        /**
+         * Создает исключение с сообщением.
+         *
+         * @param message сообщение об ошибке
+         */
+        public UnauthorizedException(String message) {
+<span class="nc" id="L258">            super(</span>
+                    &quot;UNAUTHORIZED&quot;,
                     message,
-                    &quot;Validation error: &quot; + message,
+                    &quot;Unauthorized: &quot; + message,
                     null,
                     null
             );
-<span class="nc" id="L145">        }</span>
+<span class="nc" id="L265">        }</span>
+
+        /**
+         * Создает исключение с сообщением и причиной.
+         *
+         * @param message сообщение об ошибке
+         * @param cause   причина исключения
+         */
+        public UnauthorizedException(String message, Throwable cause) {
+<span class="nc" id="L274">            super(</span>
+                    &quot;UNAUTHORIZED&quot;,
+                    message,
+                    &quot;Unauthorized: &quot; + message,
+                    null,
+                    cause
+            );
+<span class="nc" id="L281">        }</span>
     }
 
+    // ============================================================
+    // JWT токен исключения
+    // ============================================================
+
     /**
-     * Отсутствует токен
+     * Отсутствует токен.
+     *
+     * &lt;p&gt;Выбрасывается когда в запросе не передан JWT токен.
      */
     public static final class MissingTokenException extends PlatformException {
+
+        /**
+         * Создает исключение с сообщением.
+         *
+         * @param message сообщение об ошибке
+         */
         public MissingTokenException(String message) {
-<span class="nc" id="L153">            super(</span>
+<span class="nc" id="L301">            super(</span>
                     &quot;MISSING_TOKEN&quot;,
                     message,
                     &quot;Missing token: &quot; + message,
                     null,
                     null
             );
-<span class="nc" id="L160">        }</span>
+<span class="nc" id="L308">        }</span>
     }
 
     /**
-     * Неверный формат токена
+     * Неверный формат токена.
+     *
+     * &lt;p&gt;Выбрасывается когда JWT токен имеет некорректный формат.
      */
     public static final class InvalidTokenFormatException extends PlatformException {
+
+        /**
+         * Создает исключение с сообщением.
+         *
+         * @param message сообщение об ошибке
+         */
         public InvalidTokenFormatException(String message) {
-<span class="nc" id="L168">            super(</span>
+<span class="nc" id="L324">            super(</span>
                     &quot;INVALID_TOKEN_FORMAT&quot;,
                     message,
                     &quot;Invalid token format: &quot; + message,
                     null,
                     null
             );
-<span class="nc" id="L175">        }</span>
+<span class="nc" id="L331">        }</span>
     }
 
     /**
-     * Невалидный токен
+     * Невалидный токен.
+     *
+     * &lt;p&gt;Выбрасывается когда JWT токен имеет неверную подпись или другие проблемы.
      */
     public static final class InvalidTokenException extends PlatformException {
+
+        /**
+         * Создает исключение с сообщением.
+         *
+         * @param message сообщение об ошибке
+         */
         public InvalidTokenException(String message) {
-<span class="nc" id="L183">            super(</span>
+<span class="nc" id="L347">            super(</span>
                     &quot;INVALID_TOKEN&quot;,
                     message,
                     &quot;Invalid token: &quot; + message,
                     null,
                     null
             );
-<span class="nc" id="L190">        }</span>
+<span class="nc" id="L354">        }</span>
+
+        /**
+         * Создает исключение с сообщением и причиной.
+         *
+         * @param message сообщение об ошибке
+         * @param cause   причина исключения
+         */
+        public InvalidTokenException(String message, Throwable cause) {
+<span class="nc" id="L363">            super(</span>
+                    &quot;INVALID_TOKEN&quot;,
+                    message,
+                    &quot;Invalid token: &quot; + message,
+                    null,
+                    cause
+            );
+<span class="nc" id="L370">        }</span>
     }
 
     /**
-     * Токен истек
+     * Токен истек.
+     *
+     * &lt;p&gt;Выбрасывается когда срок действия JWT токена истек.
      */
     public static final class TokenExpiredException extends PlatformException {
+
+        /**
+         * Создает исключение с сообщением.
+         *
+         * @param message сообщение об ошибке
+         */
         public TokenExpiredException(String message) {
-<span class="nc" id="L198">            super(</span>
+<span class="nc" id="L386">            super(</span>
                     &quot;TOKEN_EXPIRED&quot;,
                     message,
                     &quot;Token expired: &quot; + message,
                     null,
                     null
             );
-<span class="nc" id="L205">        }</span>
+<span class="nc" id="L393">        }</span>
+    }
+
+    // ============================================================
+    // Исключения бизнес-логики
+    // ============================================================
+
+    /**
+     * Дублирование ресурса.
+     *
+     * &lt;p&gt;Выбрасывается при попытке создать ресурс с уже существующим уникальным полем.
+     */
+    public static final class DuplicateResourceException extends PlatformException {
+
+        /**
+         * Создает исключение для дублирующегося ресурса.
+         *
+         * @param resourceType тип ресурса
+         * @param identifier   идентификатор ресурса
+         */
+        public DuplicateResourceException(String resourceType, String identifier) {
+<span class="nc" id="L414">            super(</span>
+                    &quot;DUPLICATE_RESOURCE&quot;,
+                    resourceType + &quot; с такими данными уже существует&quot;,
+                    resourceType + &quot; already exists: &quot; + identifier,
+                    new Object[]{resourceType, identifier},
+                    null
+            );
+<span class="nc" id="L421">        }</span>
+    }
+
+    /**
+     * Ошибка оптимистичной блокировки.
+     *
+     * &lt;p&gt;Выбрасывается при попытке обновить запись, которая была изменена
+     * другим пользователем (несовпадение версий).
+     */
+    public static final class OptimisticLockException extends PlatformException {
+
+        /**
+         * Создает исключение для ошибки оптимистичной блокировки.
+         *
+         * @param entityType      тип сущности
+         * @param id              идентификатор сущности
+         * @param expectedVersion ожидаемая версия
+         * @param actualVersion   фактическая версия
+         */
+        public OptimisticLockException(String entityType, Long id, Long expectedVersion, Long actualVersion) {
+<span class="nc" id="L441">            super(</span>
+                    &quot;OPTIMISTIC_LOCK&quot;,
+                    &quot;Данные были изменены другим пользователем. Пожалуйста, обновите страницу и попробуйте снова.&quot;,
+                    &quot;Optimistic lock exception for &quot; + entityType + &quot; with id &quot; + id +
+                    &quot;. Expected version: &quot; + expectedVersion + &quot;, actual version: &quot; + actualVersion,
+                    new Object[]{entityType, id, expectedVersion, actualVersion},
+                    null
+            );
+<span class="nc" id="L449">        }</span>
+
+        /**
+         * Создает исключение с пользовательским сообщением.
+         *
+         * @param message сообщение об ошибке
+         */
+        public OptimisticLockException(String message) {
+<span class="nc" id="L457">            super(</span>
+                    &quot;OPTIMISTIC_LOCK&quot;,
+                    message,
+                    &quot;Optimistic lock exception: &quot; + message,
+                    null,
+                    null
+            );
+<span class="nc" id="L464">        }</span>
+
+        /**
+         * Создает исключение с сообщением и причиной.
+         *
+         * @param message сообщение об ошибке
+         * @param cause   причина исключения
+         */
+        public OptimisticLockException(String message, Throwable cause) {
+<span class="nc" id="L473">            super(</span>
+                    &quot;OPTIMISTIC_LOCK&quot;,
+                    message,
+                    &quot;Optimistic lock exception: &quot; + message,
+                    null,
+                    cause
+            );
+<span class="nc" id="L480">        }</span>
+    }
+
+    // ============================================================
+    // Исключения технического характера
+    // ============================================================
+
+    /**
+     * Ошибка парсинга.
+     *
+     * &lt;p&gt;Выбрасывается при ошибках парсинга данных с внешних сайтов.
+     */
+    public static final class ParsingException extends PlatformException {
+
+        /**
+         * Создает исключение для ошибки парсинга.
+         *
+         * @param url   URL источника данных
+         * @param cause причина исключения
+         */
+        public ParsingException(String url, Throwable cause) {
+<span class="nc" id="L501">            super(</span>
+                    &quot;PARSING_ERROR&quot;,
+                    &quot;Ошибка при парсинге данных с сайта&quot;,
+                    &quot;Failed to parse data from: &quot; + url,
+                    new Object[]{url},
+                    cause
+            );
+<span class="nc" id="L508">        }</span>
+    }
+
+    /**
+     * Ошибка валидации.
+     *
+     * &lt;p&gt;Выбрасывается при несоответствии входных данных требованиям валидации.
+     */
+    public static final class ValidationException extends PlatformException {
+
+        /**
+         * Создает исключение для ошибки валидации.
+         *
+         * @param message сообщение об ошибке
+         */
+        public ValidationException(String message) {
+<span class="nc" id="L524">            super(</span>
+                    &quot;VALIDATION_ERROR&quot;,
+                    message,
+                    &quot;Validation error: &quot; + message,
+                    null,
+                    null
+            );
+<span class="nc" id="L531">        }</span>
     }
 }
-</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.14.202510111229</span></div></body></html>
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.12.202403310830</span></div></body></html>

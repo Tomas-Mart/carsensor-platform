@@ -1,5 +1,3 @@
-# Путь: /home/mina/projects/carsensor-platform/services/gateway-service/src/main/resources/application-dev.yml
-
 spring:
   config:
     activate:

@@ -98,6 +98,12 @@
         <!-- ANSI Colors -->
         <spring.output.ansi.enabled>ALWAYS</spring.output.ansi.enabled>
         <jansi.enabled>true</jansi.enabled>
+
+        <!-- Maven Site плагины -->
+        <maven-site-plugin.version>3.12.1</maven-site-plugin.version>
+        <maven-project-info-reports-plugin.version>3.5.0</maven-project-info-reports-plugin.version>
+        <maven-javadoc-plugin.version>3.6.3</maven-javadoc-plugin.version>
+        <maven-jxr-plugin.version>3.6.0</maven-jxr-plugin.version>
     </properties>
 
     <!-- ============================================================
@@ -116,11 +122,82 @@
     </modules>
 
     <!-- ============================================================
+         ИНФОРМАЦИЯ ДЛЯ ОТЧЕТОВ
+         ============================================================ -->
+
+    <!-- SCM (Source Code Management) -->
+    <scm>
+        <connection>scm:git:https://github.com/Tomas-Mart/carsensor-platform.git</connection>
+        <developerConnection>scm:git:https://github.com/Tomas-Mart/carsensor-platform.git</developerConnection>
+        <url>https://github.com/Tomas-Mart/carsensor-platform</url>
+        <tag>HEAD</tag>
+    </scm>
+
+    <!-- Issue Management -->
+    <issueManagement>
+        <system>GitHub Issues</system>
+        <url>https://github.com/Tomas-Mart/carsensor-platform/issues</url>
+    </issueManagement>
+
+    <!-- CI Management -->
+    <ciManagement>
+        <system>GitLab CI</system>
+        <url>https://gitlab.com/kxsenia/carsensor-platform/-/pipelines</url>
+    </ciManagement>
+
+    <!-- Mailing Lists -->
+    <mailingLists>
+        <mailingList>
+            <name>Developer List</name>
+            <subscribe>dev-subscribe@carsensor-platform.com</subscribe>
+            <unsubscribe>dev-unsubscribe@carsensor-platform.com</unsubscribe>
+            <post>dev@carsensor-platform.com</post>
+        </mailingList>
+    </mailingLists>
+
+    <!-- Developers -->
+    <developers>
+        <developer>
+            <id>kxsenia</id>
+            <name>Ксения Томас-Март</name>
+            <email>fatima11111111@mail.ru</email>
+            <roles>
+                <role>Lead Developer</role>
+                <role>Architect</role>
+            </roles>
+            <organization>CarSensor Platform</organization>
+            <timezone>Europe/Moscow</timezone>
+        </developer>
+        <developer>
+            <id>Tomas-Mart</id>
+            <name>Tomas Mart</name>
+            <roles>
+                <role>DevOps Engineer</role>
+            </roles>
+            <organization>CarSensor Platform</organization>
+        </developer>
+    </developers>
+
+    <!-- Licenses -->
+    <licenses>
+        <license>
+            <name>MIT License</name>
+            <url>https://opensource.org/licenses/MIT</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <!-- Organization -->
+    <organization>
+        <name>CarSensor Platform</name>
+        <url>https://carsensor-platform.com</url>
+    </organization>
+
+    <!-- ============================================================
          УПРАВЛЕНИЕ ЗАВИСИМОСТЯМИ
          ============================================================ -->
     <dependencyManagement>
         <dependencies>
-
             <!-- ====================================================
                  ОСНОВНЫЕ BOM (Bill of Materials)
                  ================================================= -->
@@ -467,8 +544,8 @@
     </dependencyManagement>
 
     <!-- ============================================================
-         РЕПОЗИТОРИИ
-         ============================================================ -->
+        РЕПОЗИТОРИИ
+        ============================================================ -->
     <repositories>
         <repository>
             <id>central</id>
@@ -498,8 +575,8 @@
     </pluginRepositories>
 
     <!-- ============================================================
-         УПРАВЛЕНИЕ ПЛАГИНАМИ
-         ============================================================ -->
+        УПРАВЛЕНИЕ ПЛАГИНАМИ
+        ============================================================ -->
     <build>
         <pluginManagement>
             <plugins>
@@ -582,13 +659,115 @@
                     <version>${flyway-maven-plugin.version}</version>
                 </plugin>
 
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-enforcer-plugin</artifactId>
+                    <version>3.5.0</version>
+                    <executions>
+                        <execution>
+                            <id>enforce-maven</id>
+                            <goals>
+                                <goal>enforce</goal>
+                            </goals>
+                            <configuration>
+                                <rules>
+                                    <requireMavenVersion>
+                                        <version>3.6.3</version>
+                                    </requireMavenVersion>
+                                </rules>
+                            </configuration>
+                        </execution>
+                    </executions>
+                </plugin>
+
             </plugins>
         </pluginManagement>
     </build>
 
     <!-- ============================================================
-         ПРОФИЛИ СБОРКИ
-         ============================================================ -->
+        НАСТРОЙКА ГЕНЕРАЦИИ САЙТА И ОТЧЕТОВ
+        ============================================================ -->
+    <reporting>
+        <plugins>
+            <!-- Site Plugin - обновлённая версия -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-site-plugin</artifactId>
+                <version>${maven-site-plugin.version}</version>
+            </plugin>
+
+            <!-- Основная информация о проекте -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-project-info-reports-plugin</artifactId>
+                <version>${maven-project-info-reports-plugin.version}</version>
+                <reportSets>
+                    <reportSet>
+                        <reports>
+                            <report>index</report>
+                            <report>summary</report>
+                            <report>dependencies</report>
+                            <report>dependency-convergence</report>
+                            <report>plugins</report>
+                            <report>scm</report>
+                            <report>team</report>
+                            <report>mailing-list</report>
+                            <report>issue-management</report>
+                            <report>licenses</report>
+                        </reports>
+                    </reportSet>
+                </reportSets>
+            </plugin>
+
+            <!-- Javadoc -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>${maven-javadoc-plugin.version}</version>
+                <configuration>
+                    <encoding>UTF-8</encoding>
+                    <docencoding>UTF-8</docencoding>
+                    <charset>UTF-8</charset>
+                </configuration>
+            </plugin>
+
+            <!-- JXR (Source Cross-Reference) -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jxr-plugin</artifactId>
+                <version>${maven-jxr-plugin.version}</version>
+            </plugin>
+
+            <!-- JaCoCo Coverage Report -->
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>${jacoco.version}</version>
+                <reportSets>
+                    <reportSet>
+                        <reports>
+                            <report>report</report>
+                        </reports>
+                    </reportSet>
+                </reportSets>
+            </plugin>
+
+            <!-- Surefire Test Report -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-report-plugin</artifactId>
+                <version>${maven-surefire-plugin.version}</version>
+                <configuration>
+                    <showSuccess>true</showSuccess>
+                    <showPending>true</showPending>
+                </configuration>
+            </plugin>
+        </plugins>
+    </reporting>
+
+    <!-- ============================================================
+           ПРОФИЛИ СБОРКИ
+           ============================================================ -->
     <profiles>
         <profile>
             <id>dev</id>

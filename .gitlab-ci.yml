@@ -7,7 +7,7 @@ stages:
 variables:
   MAVEN_OPTS: "-Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository -Djava.awt.headless=true"
   MAVEN_CLI_OPTS: "--batch-mode --errors --fail-at-end --show-version"
-  DOCKER_HOST: tcp://docker:2375
+  DOCKER_HOST: "unix:///var/run/docker.sock"
   DOCKER_TLS_CERTDIR: ""
   DOCKER_DRIVER: overlay2
   POSTGRES_USER: postgres
@@ -25,6 +25,7 @@ cache:
 .maven-job: &maven-job
   before_script:
     - echo "Skipping curl installation"
+
 build:
   stage: build
   <<: *maven-job

@@ -41,6 +41,12 @@ spring:
     caffeine:
       spec: maximumSize=1000, expireAfterWrite=3600s
 
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: http://auth-service:8081/.well-known/jwks.json
+
 server:
   port: ${PORT:8082}
 

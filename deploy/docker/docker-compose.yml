@@ -1,6 +1,11 @@
 networks:
   carsensor-network:
     driver: bridge
+    driver_opts:
+      com.docker.network.driver.mtu: 1450
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
 
 volumes:
   postgres-auth-data:
@@ -90,8 +95,8 @@ services:
 
   auth-service:
     build:
-      context: ../..
-      dockerfile: services/auth-service/Dockerfile
+      context: .
+      dockerfile: Dockerfile.auth
     container_name: carsensor-auth
     environment:
       SPRING_PROFILES_ACTIVE: docker
@@ -116,8 +121,8 @@ services:
 
   car-service:
     build:
-      context: ../..
-      dockerfile: services/car-service/Dockerfile
+      context: .
+      dockerfile: Dockerfile.car
     container_name: carsensor-car
     environment:
       SPRING_PROFILES_ACTIVE: docker
@@ -142,8 +147,8 @@ services:
 
   scheduler-service:
     build:
-      context: ../..
-      dockerfile: services/scheduler-service/Dockerfile
+      context: .
+      dockerfile: Dockerfile.scheduler
     container_name: carsensor-scheduler
     environment:
       SPRING_PROFILES_ACTIVE: docker
@@ -171,8 +176,8 @@ services:
 
   gateway-service:
     build:
-      context: ../..
-      dockerfile: services/gateway-service/Dockerfile
+      context: .
+      dockerfile: Dockerfile.gateway
     container_name: carsensor-gateway
     environment:
       SPRING_PROFILES_ACTIVE: docker
@@ -221,10 +226,14 @@ services:
     image: prom/prometheus:latest
     container_name: carsensor-prometheus
     volumes:
-      - ../../deploy/monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ../../deploy/monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ../../deploy/monitoring/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
       - prometheus-data:/prometheus
     ports:
       - "${PROMETHEUS_PORT:-9090}:9090"
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
     networks:
       - carsensor-network
     restart: unless-stopped
@@ -236,9 +245,10 @@ services:
     container_name: carsensor-grafana
     environment:
       GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+      GF_INSTALL_PLUGINS: grafana-piechart-panel
     volumes:
-      - ../../deploy/monitoring/grafana/dashboard.yml:/etc/grafana/provisioning/dashboards/dashboard.yml
-      - ../../deploy/monitoring/grafana/datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml
+      - ../../deploy/monitoring/grafana/datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
+      - ../../deploy/monitoring/grafana/dashboard.yml:/etc/grafana/provisioning/dashboards/dashboard.yml:ro
       - grafana-data:/var/lib/grafana
     ports:
       - "${GRAFANA_PORT:-3030}:3000"

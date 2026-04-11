@@ -5,10 +5,6 @@ spring:
     active: dev
 
   datasource:
-    url: jdbc:postgresql://localhost:5434/car_db
-    username: ${DB_USERNAME:postgres}
-    password: ${DB_PASSWORD:postgres}
-    driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 20
       minimum-idle: 5
@@ -78,10 +74,15 @@ spring:
     activate:
       on-profile: docker
   datasource:
-    url: jdbc:postgresql://postgres-car:5432/car_db
+    url: jdbc:postgresql://carsensor-postgres-car:5432/car_db
     username: ${DB_USERNAME:postgres}
     password: ${DB_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: http://carsensor-auth:8081/.well-known/jwks.json
 
 ---
 spring:

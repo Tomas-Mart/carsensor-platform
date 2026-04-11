@@ -1,0 +1,27 @@
+-- =====================================================
+-- Таблица cars
+-- =====================================================
+CREATE TABLE IF NOT EXISTS cars (
+    id BIGSERIAL PRIMARY KEY,
+    brand VARCHAR(100) NOT NULL,
+    model VARCHAR(100) NOT NULL,
+    year INTEGER NOT NULL,
+    mileage INTEGER NOT NULL,
+    price DECIMAL(12, 2) NOT NULL,
+    description TEXT,
+    original_brand VARCHAR(100),
+    original_model VARCHAR(100),
+    exterior_color VARCHAR(50),
+    interior_color VARCHAR(50),
+    engine_capacity VARCHAR(20),
+    transmission VARCHAR(30),
+    drive_type VARCHAR(30),
+    photo_urls JSONB,
+    main_photo_url VARCHAR(500),
+    parsed_at TIMESTAMP,
+    source_url VARCHAR(500),
+    external_id VARCHAR(100),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    version BIGINT DEFAULT 0
+);

@@ -1,0 +1,8 @@
+-- =====================================================
+-- Триггер для автоматического обновления updated_at
+-- =====================================================
+DROP TRIGGER IF EXISTS update_cars_updated_at ON cars;
+CREATE TRIGGER update_cars_updated_at
+    BEFORE UPDATE ON cars
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();

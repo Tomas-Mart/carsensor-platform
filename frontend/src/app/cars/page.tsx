@@ -9,7 +9,6 @@ import {CarCard} from '@/components/cars/CarCard';
 import {Pagination} from '@/components/ui/pagination';
 import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
-import {Skeleton} from '@/components/ui/skeleton';
 import {Alert, AlertDescription} from '@/components/ui/alert';
 import {Car, LogOut, Search, SlidersHorizontal, X} from 'lucide-react';
 import {AnimatePresence, motion} from 'framer-motion';
@@ -47,8 +46,8 @@ export default function CarsPage() {
         updateFilters({search: debouncedQuery || undefined});
     }, [debouncedQuery, updateFilters]);
 
-    const handleLogout = () => {
-        logout();
+    const handleLogout = async () => {
+        await logout();
         router.push('/login');
     };
 
@@ -77,9 +76,9 @@ export default function CarsPage() {
                     </div>
 
                     <div className="flex items-center space-x-4">
-            <span className="hidden text-sm text-muted-foreground sm:inline">
-              {user?.username}
-            </span>
+                        <span className="hidden text-sm text-muted-foreground sm:inline">
+                            {user?.username || 'admin'}
+                        </span>
                         <Button
                             variant="ghost"
                             size="icon"
@@ -124,10 +123,10 @@ export default function CarsPage() {
                     >
                         <SlidersHorizontal className="mr-2 h-4 w-4"/>
                         Фильтры
-                        {filters && Object.keys(filters).length > 0 && (
+                        {filters && Object.keys(filters).length > 0 && Object.keys(filters).some(key => filters[key as keyof typeof filters]) && (
                             <span className="ml-2 rounded-full bg-primary px-2 py-0.5 text-xs text-primary-foreground">
-                {Object.keys(filters).length}
-              </span>
+                                {Object.keys(filters).filter(key => filters[key as keyof typeof filters]).length}
+                            </span>
                         )}
                     </Button>
                 </div>
@@ -164,7 +163,7 @@ export default function CarsPage() {
                 {loading && cars.length === 0 ? (
                     <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                         {[...Array(8)].map((_, i) => (
-                            <Skeleton key={i} className="h-[300px] rounded-lg"/>
+                            <div key={i} className="h-[300px] rounded-lg bg-muted animate-pulse"/>
                         ))}
                     </div>
                 ) : cars.length === 0 ? (

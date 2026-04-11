@@ -1,4 +1,3 @@
-# frontend/Dockerfile
 FROM node:20-alpine AS builder
 
 WORKDIR /app
@@ -26,9 +25,6 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone/ ./
 # Копируем static отдельно
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
-
-# Убедимся, что server.js существует
-RUN ls -la /app/ && test -f /app/server.js || echo "server.js not found"
 
 USER nextjs
 

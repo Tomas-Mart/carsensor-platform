@@ -18,8 +18,8 @@ export default function LoginPage() {
     setError('');
 
     try {
-      console.log('Sending login request...');
-      const response = await fetch('http://localhost:8080/api/v1/auth/login', {
+      // Используем относительный путь (через Next.js rewrite)
+      const response = await fetch('/api/v1/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -28,19 +28,16 @@ export default function LoginPage() {
       });
 
       const data = await response.json();
-      console.log('Response status:', response.status);
-      console.log('Response data:', data);
 
       if (!response.ok) {
         throw new Error(data.message || data.detail || 'Ошибка входа');
       }
 
       if (data.access_token) {
-        localStorage.setItem('token', data.access_token);
+        localStorage.setItem('access_token', data.access_token);
         localStorage.setItem('refresh_token', data.refresh_token);
-        console.log('Token saved, redirecting to /cars...');
-        
-        // Используем window.location.href вместо router.push
+        localStorage.setItem('user', JSON.stringify({ username: data.username, roles: data.roles }));
+        // Переход на страницу автомобилей
         window.location.href = '/cars';
       } else {
         setError('Токен не получен');
@@ -81,7 +78,7 @@ export default function LoginPage() {
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"   
                   placeholder="Введите логин"
                 />
                 <p className="text-xs text-muted-foreground">

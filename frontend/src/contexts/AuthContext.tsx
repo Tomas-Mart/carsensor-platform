@@ -10,7 +10,7 @@ interface AuthContextType {
     isAuthenticated: boolean;
     isLoading: boolean;
     login: (username: string, password: string) => Promise<void>;
-    logout: () => Promise<void>;  // <-- Promise
+    logout: () => Promise<void>;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -35,11 +35,11 @@ export function AuthProvider({children}: { children: ReactNode }) {
             username: response.username,
             roles: response.roles,
         };
-        storage.setAuth(response.accessToken, response.refreshToken, userData);
+        storage.setAuth(response.access_token, response.refresh_token, userData);
         setUser(userData);
     };
 
-    const logout = async (): Promise<void> => {  // <-- async + Promise
+    const logout = async (): Promise<void> => {
         try {
             await authApi.logout();
         } finally {

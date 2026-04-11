@@ -5,7 +5,7 @@ WORKDIR /app
 RUN apk --no-cache add curl
 RUN addgroup -S spring && adduser -S spring -G spring
 
-COPY services/gateway-service/target/gateway-service-*.jar app.jar
+COPY target/gateway-service-*.jar app.jar
 
 RUN chown -R spring:spring /app
 

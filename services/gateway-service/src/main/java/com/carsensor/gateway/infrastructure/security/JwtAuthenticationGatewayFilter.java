@@ -52,18 +52,19 @@ public class JwtAuthenticationGatewayFilter implements GatewayFilter {
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
-
-        log.info("=== JwtAuthenticationGatewayFilter invoked for path: {} ===",
-                exchange.getRequest().getURI().getPath());
+        log.info("=== JwtAuthenticationGatewayFilter START ===");
         ServerHttpRequest request = exchange.getRequest();
         String path = request.getURI().getPath();
+        String authHeader = request.getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
+        log.info("Path: {}, Auth header present: {}", path, authHeader != null);
 
         if (isPublicPath(path)) {
-            log.debug("Public path accessed: {}", path);
+            log.info("Public path accessed, skipping auth: {}", path);
             return chain.filter(exchange);
         }
 
         String token = extractJwtFromRequest(request);
+        log.info("Token extracted: {}", token != null ? "YES (length: " + token.length() + ")" : "NO");
 
         if (token == null) {
             log.warn("Missing JWT token for path: {}", path);
@@ -71,12 +72,16 @@ public class JwtAuthenticationGatewayFilter implements GatewayFilter {
         }
 
         ValidationResult validationResult = validateToken(token);
+        log.info("Token validation result: valid={}, reason={}", validationResult.isValid(), validationResult.getReason());
+
         if (!validationResult.isValid()) {
             log.warn("Invalid JWT token for path: {}, reason: {}", path, validationResult.getReason());
             return onError(exchange, validationResult.getErrorType());
         }
 
         String username = extractUsername(token);
+        log.info("Username extracted: {}", username);
+
         if (username == null) {
             log.warn("Could not extract username from token for path: {}", path);
             return onError(exchange, ErrorType.INVALID_TOKEN);
@@ -87,6 +92,7 @@ public class JwtAuthenticationGatewayFilter implements GatewayFilter {
                 .header("X-User-Roles", String.join(",", extractRoles(token)))
                 .build();
 
+        log.info("Request mutated with headers, forwarding to chain");
         return chain.filter(exchange.mutate().request(mutatedRequest).build());
     }
 

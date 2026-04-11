@@ -5,7 +5,7 @@ WORKDIR /app
 RUN apk --no-cache add curl
 RUN addgroup -S spring && adduser -S spring -G spring
 
-COPY services/car-service/target/car-service-*.jar app.jar
+COPY target/car-service-*.jar app.jar
 
 RUN chown -R spring:spring /app
 

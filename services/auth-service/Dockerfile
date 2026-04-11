@@ -5,8 +5,8 @@ WORKDIR /app
 RUN apk --no-cache add curl
 RUN addgroup -S spring && adduser -S spring -G spring
 
-# Копируем JAR из правильного пути (относительно корня проекта)
-COPY services/auth-service/target/auth-service-*.jar app.jar
+# Копируем JAR из target (контекст сборки - директория сервиса)
+COPY target/auth-service-*.jar app.jar
 
 RUN chown -R spring:spring /app
 

@@ -20,16 +20,8 @@ public class SecurityConfig {
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeExchange(exchanges -> exchanges
-                        .pathMatchers(
-                                "/api/v1/auth/**",
-                                "/actuator/**",
-                                "/swagger/**",
-                                "/swagger-ui/**"
-                        ).permitAll()
-                        .anyExchange().authenticated()
+                        .anyExchange().permitAll()  // Разрешаем все запросы, JWT проверяется в кастомном фильтре
                 )
-                // TODO(P2): Настроить OAuth2 Resource Server при переходе на enterprise архитектуру
-                // .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()))
                 .build();
     }
 

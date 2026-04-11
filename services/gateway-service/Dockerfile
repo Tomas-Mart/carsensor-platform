@@ -1,11 +1,19 @@
 FROM eclipse-temurin:21-jre-alpine
+
 WORKDIR /app
+
 RUN apk --no-cache add curl
 RUN addgroup -S spring && adduser -S spring -G spring
-COPY target/gateway-service-*.jar app.jar
+
+COPY services/gateway-service/target/gateway-service-*.jar app.jar
+
 RUN chown -R spring:spring /app
+
 USER spring:spring
+
 EXPOSE 8080
+
 HEALTHCHECK --interval=30s --timeout=3s --start-period=30s --retries=3 \
   CMD curl -f http://localhost:8080/actuator/health || exit 1
+
 ENTRYPOINT ["java", "-jar", "app.jar"]

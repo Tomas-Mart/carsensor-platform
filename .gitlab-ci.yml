@@ -89,12 +89,16 @@ package:
     - echo "Checking Docker..."
     - docker --version || echo "Docker not found"
   script:
+    # Сначала собираем JAR файлы
+    - chmod +x ./mvnw
+    - ./mvnw $MAVEN_CLI_OPTS package -DskipTests
+    # Затем собираем Docker образы
     - docker build -t $CI_REGISTRY_IMAGE/auth-service:latest -f services/auth-service/Dockerfile .
     - docker build -t $CI_REGISTRY_IMAGE/car-service:latest -f services/car-service/Dockerfile .
     - docker build -t $CI_REGISTRY_IMAGE/scheduler-service:latest -f services/scheduler-service/Dockerfile .
     - docker build -t $CI_REGISTRY_IMAGE/gateway-service:latest -f services/gateway-service/Dockerfile .
     - docker build -t $CI_REGISTRY_IMAGE/frontend:latest -f frontend/Dockerfile frontend
-
+    # Пушим образы
     - docker push $CI_REGISTRY_IMAGE/auth-service:latest
     - docker push $CI_REGISTRY_IMAGE/car-service:latest
     - docker push $CI_REGISTRY_IMAGE/scheduler-service:latest

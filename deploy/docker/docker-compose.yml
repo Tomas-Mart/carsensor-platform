@@ -95,8 +95,8 @@ services:
 
   auth-service:
     build:
-      context: .
-      dockerfile: Dockerfile.auth
+      context: ../..
+      dockerfile: services/auth-service/Dockerfile
     container_name: carsensor-auth
     environment:
       SPRING_PROFILES_ACTIVE: docker
@@ -121,8 +121,8 @@ services:
 
   car-service:
     build:
-      context: .
-      dockerfile: Dockerfile.car
+      context: ../..
+      dockerfile: services/car-service/Dockerfile
     container_name: carsensor-car
     environment:
       SPRING_PROFILES_ACTIVE: docker
@@ -147,8 +147,8 @@ services:
 
   scheduler-service:
     build:
-      context: .
-      dockerfile: Dockerfile.scheduler
+      context: ../..
+      dockerfile: services/scheduler-service/Dockerfile
     container_name: carsensor-scheduler
     environment:
       SPRING_PROFILES_ACTIVE: docker
@@ -176,8 +176,8 @@ services:
 
   gateway-service:
     build:
-      context: .
-      dockerfile: Dockerfile.gateway
+      context: ../..
+      dockerfile: services/gateway-service/Dockerfile
     container_name: carsensor-gateway
     environment:
       SPRING_PROFILES_ACTIVE: docker
